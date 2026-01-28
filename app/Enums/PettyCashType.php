@@ -6,14 +6,14 @@ enum PettyCashType: string
 {
     case INVOICE = 'invoice';
     case REIMBURSE = 'reimburse';
-    case PAGU = 'pagu';
+    case PENGOBATAN = 'pengobatan';
 
     public function label(): string
     {
         return match ($this) {
             self::INVOICE => 'Invoice',
             self::REIMBURSE => 'Reimburse',
-            self::PAGU => 'Pagu',
+            self::PENGOBATAN => 'Pengobatan',
         };
     }
 }

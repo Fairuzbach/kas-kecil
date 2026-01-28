@@ -4,13 +4,14 @@ namespace App\Livewire\PettyCash;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use livewire\Attributes\On;
 use App\Models\PettyCashRequest;
 use Illuminate\Support\Facades\Auth;
 
 class IndexTable extends Component
 {
     use WithPagination;
-
+    #[On('request-created')]
     public function render()
     {
         $user = Auth::user();

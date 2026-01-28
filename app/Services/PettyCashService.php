@@ -21,17 +21,25 @@ class PettyCashService
                 ->count() + 1;
 
             $trackingNumber = 'PC-' . now()->format('Ym') . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            $totalAmount = collect($data['items'])->sum('amount');
             $request = PettyCashRequest::create([
                 'user_id' => $user->id,
                 'department_id' => $user->department_id,
-                'coa_id' => $data['coa_id'],
-                'type' => $data['type'],
                 'tracking_number' => $trackingNumber,
+                'type' => $data['type'],
                 'title' => $data['title'],
-                'amount' => $data['amount'],
+                'description' => $data['description'] ?? null,
+                'amount' => $totalAmount,
                 'status' => PettyCashStatus::PENDING_MANAGER, // Default status
             ]);
 
+            foreach ($data['items'] as $item) {
+                $request->details()->create([
+                    'item_name' => $item['item_name'],
+                    'amount' => $item['amount'],
+                    'coa_id' => $item['coa_id']
+                ]);
+            }
             // Kirim Email Notifikasi ke Manager Departemen
             // Logika email dipisah ke method private atau Event Listener
             // $this->notifyDepartmentManager($request);

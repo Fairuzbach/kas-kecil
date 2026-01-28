@@ -15,15 +15,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('department_id')->constrained();
-            $table->foreignId('coa_id')->constrained('coas');
 
-            // Kolom Tipe Pengajuan (Invoice/Reimburse/Pagu)
-            $table->string('type')->index();
+
+
 
             $table->string('tracking_number')->unique();
+            $table->string('type');
             $table->string('title');
             $table->text('description')->nullable();
-            $table->decimal('amount', 15, 2);
+            $table->decimal('amount', 15, 2)->default(0);
             $table->string('attachment')->nullable();
             $table->string('status')->default('draft')->index();
 

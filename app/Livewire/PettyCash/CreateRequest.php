@@ -14,67 +14,98 @@ class CreateRequest extends Component
 {
     use WithFileUploads;
 
-    // Property Form
-    #[Validate('required|string|max:255')]
     public $title = '';
-
-    #[Validate('required')] // Validasi Enum akan kita handle manual/otomatis
-    public $type = '';
-
-    #[Validate('required|numeric|min:1000')]
-    public $amount = '';
-
-    #[Validate('required|exists:coas,id')]
-    public $coa_id = '';
-
-    #[Validate('nullable|string')]
+    public $type  = '';
     public $description = '';
-
-    #[Validate('nullable|image|max:2048')] // Maks 2MB
     public $attachment;
 
-    // Method Save (Clean & Slim)
-    public function save(PettyCashService $service)
+    // ARRAY DINAMIS (Default 1 baris kosong)
+    public $items = [
+        ['item_name' => '', 'amount' => '', 'coa_id' => '']
+    ];
+
+    // Tambah Baris Baru
+    public function addItem()
     {
-        $this->validate();
+        $this->items[] = ['item_name' => '', 'amount' => '', 'coa_id' => '', 'type' => ''];
+    }
 
-        try {
-            // Upload file jika ada
-            $attachmentPath = null;
-            if ($this->attachment) {
-                $attachmentPath = $this->attachment->store('attachments', 'public');
-            }
+    // Hapus Baris
+    public function removeItem($index)
+    {
+        unset($this->items[$index]);
+        $this->items = array_values($this->items); // Re-index array
+    }
 
-            // Panggil Service (Business Logic ada di sana)
-            $service->createRequest([
-                'title' => $this->title,
-                'type' => $this->type, // Invoice/Reimburse/Pagu
-                'amount' => $this->amount,
-                'coa_id' => $this->coa_id,
-                'description' => $this->description,
-                'attachment' => $attachmentPath,
-            ], auth()->user());
+    // Hitung Total Real-time (Opsional, untuk tampilan saja)
+    public function getTotalProperty()
+    {
+        return collect($this->items)->sum(fn($i) => (int) ($i['amount'] ?? 0));
+    }
 
-            // Flash Message & Redirect
-            session()->flash('success', 'Pengajuan berhasil dibuat! Menunggu approval.');
-            return $this->redirect('/dashboard', navigate: true);
-        } catch (\Exception $e) {
-            $this->addError('general', 'Terjadi kesalahan: ' . $e->getMessage());
+    public function save($status = 'pending_manager')
+    {
+        // 1. BERSIHKAN BARIS KOSONG
+        $this->items = collect($this->items)->filter(function ($item) {
+            return trim($item['item_name']) !== '';
+        })->values()->all();
+
+        // 2. CEK JIKA KOSONG SETELAH DIBERSIHKAN
+        if (empty($this->items)) {
+            $this->addError('items', 'Minimal harus ada 1 baris item.');
+            return;
         }
+
+        // 3. VALIDASI (Hapus items.*.type karena sudah pindah ke header)
+        $this->validate([
+            'title' => 'required|string|max:255',
+            'type' => 'required',
+            'items' => 'required|array|min:1',
+            'items.*.item_name' => 'required|string',
+            'items.*.amount' => 'required|numeric|min:1000',
+            'items.*.coa_id' => 'required|exists:coas,id',
+            // 'items.*.type' => 'required',  <-- HAPUS INI (Sudah tidak ada di form detail)
+            'attachment' => 'nullable|image|max:2048',
+        ]);
+
+        // 4. TENTUKAN STATUS ENUM
+        $statusEnum = match ($status) {
+            'draft' => \App\Enums\PettyCashStatus::DRAFT,
+            default => \App\Enums\PettyCashStatus::PENDING_MANAGER
+        };
+
+        $attachmentPath = $this->attachment ? $this->attachment->store('attachments', 'public') : null;
+
+        // 5. PANGGIL SERVICE (Gunakan helper app() agar tidak error undefined variable)
+        app(\App\Services\PettyCashService::class)->createRequest([
+            'title' => $this->title,
+            'type' => $this->type,
+            'description' => $this->description,
+            'attachment' => $attachmentPath,
+            'items' => $this->items,
+            'status' => $statusEnum, // <--- JANGAN LUPA KIRIM STATUS INI
+        ], auth()->user());
+
+        // 6. RESET FORM
+        $this->reset(['title', 'type', 'description', 'attachment']);
+
+        // Perbaikan Reset Array (Harus Array di dalam Array)
+        $this->items = [['item_name' => '', 'amount' => '', 'coa_id' => '']];
+
+        // 7. FEEDBACK & TUTUP MODAL (Jangan Redirect agar smooth)
+        $msg = $status === 'draft' ? 'Disimpan sebagai Draft.' : 'Pengajuan dikirim ke Manager!';
+        session()->flash('success', $msg);
+
+        // Kirim sinyal untuk tutup modal & refresh tabel
+        $this->dispatch('request-created');
     }
 
     public function render()
     {
-        // Ambil user yang sedang login
-        $user = auth()->user();
-
-        // Cek apakah user punya departemen?
-        // Jika punya, ambil COA departemen tersebut. Jika tidak, kosongkan array.
-        $coas = $user->department ? $user->department->coas : [];
-
         return view('livewire.petty-cash.create-request', [
             'types' => PettyCashType::cases(),
-            'coas' => $coas,
+            // Filter COA sesuai department user
+            'coas' => auth()->user()->department->coas,
         ]);
     }
 }

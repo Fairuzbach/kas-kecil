@@ -21,6 +21,11 @@ class PettyCashRequest extends Model
         'finance_approved_at' => 'datetime',
     ];
 
+    public function details()
+    {
+        return $this->hasMany(PettyCashDetail::class);
+    }
+
     // Relasi
     public function user(): BelongsTo
     {
