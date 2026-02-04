@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\PettyCash\CreateRequest; // <--- Jangan lupa import ini
+use App\Livewire\PettyCash\Show;
 
 Route::get('/', function () {
     return view('welcome');
@@ -19,6 +20,10 @@ Route::middleware('auth')->group(function () {
 
     // --- ROUTE KITA ---
     Route::get('/petty-cash/create', CreateRequest::class)->name('petty-cash.create');
+    // Route untuk melihat Detail Pengajuan
+    // {pettyCashRequest} adalah parameter ID yang otomatis ditangkap oleh Livewire
+    Route::get('/petty-cash/{pettyCashRequest}', \App\Livewire\PettyCash\Show::class)
+        ->name('petty-cash.show');
 });
 
 // Baris ini sekarang PASTI berhasil karena filenya sudah digenerate ulang
