@@ -10,6 +10,7 @@ class Coa extends Model
 
     public function departments()
     {
+        // Relasi Many-to-Many
         return $this->belongsToMany(Department::class, 'coa_department');
     }
 }
