@@ -2,7 +2,11 @@
     <form wire:submit="save('pending_manager')" class="space-y-4">
 
         <div class="max-h-[70vh] overflow-y-auto px-1">
-
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Kode Department dan Department Pemohon</label>
+                <input type="text" wire:model="user_department" readonly
+                    class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 text-sm shadow-sm cursor-not-allowed">
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Dibayar Kepada</label>
