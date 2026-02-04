@@ -9,6 +9,7 @@ use Livewire\Attributes\Validate;
 use App\Services\PettyCashService;
 use App\Models\Coa;
 use App\Enums\PettyCashType;
+use App\Models\PettyCashDetail;
 
 class CreateRequest extends Component
 {
@@ -18,6 +19,17 @@ class CreateRequest extends Component
     public $type  = '';
     public $description = '';
     public $attachment;
+    public $user_department = '';
+
+    public function mount()
+    {
+        $user = auth()->user();
+        if ($user->department) {
+            $this->user_department = $user->department->code . ' - ' . $user->department->name;
+        } else {
+            $this->user_department = 'No Department';
+        }
+    }
 
     // ARRAY DINAMIS (Default 1 baris kosong)
     public $items = [
@@ -100,12 +112,30 @@ class CreateRequest extends Component
         $this->dispatch('request-created');
     }
 
+    public function details()
+    {
+        return $this->hasMany(PettyCashDetail::class);
+    }
+
     public function render()
     {
+        $user = auth()->user();
+
+        $filteredCoas = \App\Models\Coa::query()
+            // 1. Ambil yang KHUSUS milik departemen user (misal: IT)
+            ->whereHas('departments', function ($query) use ($user) {
+                $query->where('departments.id', $user->department_id);
+            })
+            // 2. ATAU ambil yang GLOBAL (yang kolom divisinya "ALL DEPARTMENT" tadi)
+            // orDoesntHave = Cari yang tidak punya relasi di tabel pivot
+            ->orDoesntHave('departments')
+
+            ->orderBy('code')
+            ->get();
+
         return view('livewire.petty-cash.create-request', [
-            'types' => PettyCashType::cases(),
-            // Filter COA sesuai department user
-            'coas' => auth()->user()->department->coas,
+            'coas' => $filteredCoas,
+            'types' => \App\Enums\PettyCashType::cases(),
         ]);
     }
 }
