@@ -15,7 +15,6 @@ class IndexTable extends Component
     public function render()
     {
         $user = Auth::user();
-
         // Query Dasar
         $query = PettyCashRequest::query()
             ->with(['department', 'coa', 'user']); // Mencegah N+1
@@ -30,6 +29,10 @@ class IndexTable extends Component
             $query->where(function ($q) use ($user) {
                 $q->where('user_id', $user->id) // Punya sendiri
                     ->orWhere('department_id', $user->department_id); // Punya anak buah
+            });
+        } else {
+            $query->whereHas('user.department', function ($q) use ($user) {
+                $q->where('director_group', $user->director_group);
             });
         }
         // 3. Finance / Director: Bisa melihat semua (atau filter nanti)
