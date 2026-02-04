@@ -59,7 +59,10 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4">
-                                <button class="text-indigo-600 hover:text-indigo-900 font-bold">Detail</button>
+                                <a href="{{ route('petty-cash.show', $req->id) }}" wire:navigate
+                                    class="text-indigo-600 hover:text-indigo-900 font-bold hover:underline cursor-pointer">
+                                    Lihat Detail ➜
+                                </a>
                             </td>
                         </tr>
                     @empty
