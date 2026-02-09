@@ -20,11 +20,15 @@ class User extends Authenticatable
     protected $fillable = [
         'nik',
         'department_id',
+        'division_id',
         'name',
         'email',
         'password',
         'role',
-        'director_group'
+        'director_group',
+        'supervisor_id',
+        'phone_number',
+        'branch'
     ];
 
     /**
@@ -52,5 +56,19 @@ class User extends Authenticatable
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
+    }
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class, 'nik', 'nik');
+    }
+
+    public function getSupervisorAttribute()
+    {
+
+        return $this->employee->supervisor ?? null;
     }
 }
