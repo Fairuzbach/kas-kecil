@@ -2,13 +2,8 @@
 
 namespace App\Livewire\PettyCash;
 
-use Livewire\Attributes\Layout;
 use Livewire\Component;
-use Livewire\WithFileUploads; // Wajib untuk upload file
-use Livewire\Attributes\Validate;
-use App\Services\PettyCashService;
-use App\Models\Coa;
-use App\Enums\PettyCashType;
+use Livewire\WithFileUploads;
 use App\Models\PettyCashDetail;
 
 class CreateRequest extends Component
@@ -18,38 +13,43 @@ class CreateRequest extends Component
     public $title = '';
     public $type  = '';
     public $description = '';
-    public $attachment;
     public $user_department = '';
+    public $attachment;
+    public $attachment_receipt;
+    public $attachment_prescription;
+    public $search_keyword = '';
+    public $employee_result = [];
+    public $is_searching = false;
+    public $division_employees = [];
+    public $selected_employee_id;
+
+
 
     public function mount()
     {
+
         $user = auth()->user();
-        if ($user->department) {
-            $this->user_department = $user->department->code . ' - ' . $user->department->name;
-        } else {
-            $this->user_department = 'No Department';
-        }
+        $this->user_department = $user->department ? ($user->department->code . ' - ' . $user->department->name) : 'No Department';
     }
 
-    // ARRAY DINAMIS (Default 1 baris kosong)
+
     public $items = [
         ['item_name' => '', 'amount' => '', 'coa_id' => '']
     ];
 
-    // Tambah Baris Baru
+
     public function addItem()
     {
         $this->items[] = ['item_name' => '', 'amount' => '', 'coa_id' => '', 'type' => ''];
     }
 
-    // Hapus Baris
+
     public function removeItem($index)
     {
         unset($this->items[$index]);
-        $this->items = array_values($this->items); // Re-index array
+        $this->items = array_values($this->items);
     }
 
-    // Hitung Total Real-time (Opsional, untuk tampilan saja)
     public function getTotalProperty()
     {
         return collect($this->items)->sum(fn($i) => (int) ($i['amount'] ?? 0));
@@ -57,58 +57,105 @@ class CreateRequest extends Component
 
     public function save($status = 'pending_manager')
     {
-        // 1. BERSIHKAN BARIS KOSONG
+        $user = auth()->user();
+
+
         $this->items = collect($this->items)->filter(function ($item) {
             return trim($item['item_name']) !== '';
         })->values()->all();
 
-        // 2. CEK JIKA KOSONG SETELAH DIBERSIHKAN
+
         if (empty($this->items)) {
             $this->addError('items', 'Minimal harus ada 1 baris item.');
             return;
         }
+        $coaRule = ($this->type === 'pengobatan') ? 'nullable' : 'required|exists:coas,id';
 
-        // 3. VALIDASI (Hapus items.*.type karena sudah pindah ke header)
-        $this->validate([
+        $rules = [
             'title' => 'required|string|max:255',
             'type' => 'required',
             'items' => 'required|array|min:1',
             'items.*.item_name' => 'required|string',
             'items.*.amount' => 'required|numeric|min:1000',
-            'items.*.coa_id' => 'required|exists:coas,id',
-            // 'items.*.type' => 'required',  <-- HAPUS INI (Sudah tidak ada di form detail)
-            'attachment' => 'nullable|image|max:2048',
-        ]);
+            'items.*.coa_id' => $coaRule,
+        ];
 
-        // 4. TENTUKAN STATUS ENUM
-        $statusEnum = match ($status) {
-            'draft' => \App\Enums\PettyCashStatus::DRAFT,
-            default => \App\Enums\PettyCashStatus::PENDING_MANAGER
-        };
+        if ($this->type === 'pengobatan') {
+            $rules['attachment_receipt'] = 'required|image|max:2048';
+            $rules['attachment_prescription'] = 'required|image|max:2048';
+        } else {
+            $rules['attachment'] = 'nullable|image|max:2048';
+        }
 
-        $attachmentPath = $this->attachment ? $this->attachment->store('attachments', 'public') : null;
+        $this->validate($rules);
 
-        // 5. PANGGIL SERVICE (Gunakan helper app() agar tidak error undefined variable)
+
+        $mainFile = null;
+        $extraFile = null;
+
+        if ($this->type === 'pengobatan') {
+            if ($this->attachment_receipt) {
+                $mainFile = $this->attachment_receipt->store('attachments', 'public');
+            }
+            if ($this->attachment_prescription) {
+                $extraFile = $this->attachment_prescription->store('attachments', 'public');
+            }
+        } else {
+            if ($this->attachment) {
+                $mainFile = $this->attachment->store('attachments', 'public');
+            }
+        }
+
+        if ($status === 'draft') {
+            $statusEnum = \App\Enums\PettyCashStatus::DRAFT;
+        } else {
+            if ($this->type === 'pengobatan' && $user->supervisor_id) {
+                $statusEnum = \App\Enums\PettyCashStatus::PENDING_SUPERVISOR;
+            } else {
+                $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
+            }
+        }
+        $cleanedItems = collect($this->items)->map(function ($item) {
+
+            $coaValue = $item['coa_id'];
+            return [
+                'item_name' => $item['item_name'],
+                'amount'    => $item['amount'],
+                'coa_id'    => empty($coaValue) ? null : $coaValue,
+            ];
+        })->toArray();
         app(\App\Services\PettyCashService::class)->createRequest([
-            'title' => $this->title,
-            'type' => $this->type,
-            'description' => $this->description,
-            'attachment' => $attachmentPath,
-            'items' => $this->items,
-            'status' => $statusEnum, // <--- JANGAN LUPA KIRIM STATUS INI
+            'title'            => $this->title,
+            'type'             => $this->type,
+            'description'      => $this->description,
+            'attachment'       => $mainFile,
+            'extra_attachment' => $extraFile,
+            'items'            => $cleanedItems,
+            'status'           => $statusEnum,
         ], auth()->user());
 
-        // 6. RESET FORM
-        $this->reset(['title', 'type', 'description', 'attachment']);
+        $this->reset([
+            'title',
+            'type',
+            'description',
+            'attachment',
+            'attachment_receipt',
+            'attachment_prescription',
+            'search_keyword',
+            'employee_result'
+        ]);
 
-        // Perbaikan Reset Array (Harus Array di dalam Array)
         $this->items = [['item_name' => '', 'amount' => '', 'coa_id' => '']];
 
-        // 7. FEEDBACK & TUTUP MODAL (Jangan Redirect agar smooth)
-        $msg = $status === 'draft' ? 'Disimpan sebagai Draft.' : 'Pengajuan dikirim ke Manager!';
-        session()->flash('success', $msg);
+        if ($status === 'draft') {
+            $msg = 'Disimpan sebagai Draft.';
+        } elseif ($statusEnum === \App\Enums\PettyCashStatus::PENDING_SUPERVISOR) {
+            $msg = 'Pengajuan kesehatan dikirim ke Supervisor';
+        } else {
+            $msg = 'Pengajuan dikirim ke Manager';
+        }
 
-        // Kirim sinyal untuk tutup modal & refresh tabel
+        session()->flash('success', $msg);
         $this->dispatch('request-created');
     }
 
@@ -122,14 +169,10 @@ class CreateRequest extends Component
         $user = auth()->user();
 
         $filteredCoas = \App\Models\Coa::query()
-            // 1. Ambil yang KHUSUS milik departemen user (misal: IT)
             ->whereHas('departments', function ($query) use ($user) {
                 $query->where('departments.id', $user->department_id);
             })
-            // 2. ATAU ambil yang GLOBAL (yang kolom divisinya "ALL DEPARTMENT" tadi)
-            // orDoesntHave = Cari yang tidak punya relasi di tabel pivot
             ->orDoesntHave('departments')
-
             ->orderBy('code')
             ->get();
 
@@ -137,5 +180,59 @@ class CreateRequest extends Component
             'coas' => $filteredCoas,
             'types' => \App\Enums\PettyCashType::cases(),
         ]);
+    }
+    public function updatedSearchKeyword()
+    {
+        if (strlen($this->search_keyword) < 2) {
+            $this->employee_result = [];
+            return;
+        }
+
+        $keyword = trim($this->search_keyword);
+        $user = auth()->user();
+        if (!$user->division_id || !$user->branch) {
+            $this->employee_result = [];
+            return;
+        }
+
+        $query = \App\Models\Employee::query()
+            ->with(['department', 'division'])
+            ->where('division_id', $user->division_id)
+            ->where(function ($q) use ($keyword) {
+                $q->where('name', 'LIKE', '%' . $keyword . '%')
+                    ->orWhere('nik', 'LIKE', '%' . $keyword . '%');
+            })
+            ->limit(10)
+            ->get();
+
+        $this->employee_result = $query->map(function ($employee) {
+            return [
+                'id'              => $employee->id,
+                'nik'             => $employee->nik,
+                'name'            => $employee->name,
+                'department_name' => $employee->department->name ?? '-',
+                'division_name'   => $employee->division->name ?? '-',
+                'branch'          => $employee->branch // Opsional: Tampilkan branch di list
+            ];
+        })->toArray();
+    }
+
+    public function updatedSelectedEmployeeId($nik)
+    {
+
+        $emp = collect($this->division_employees)->where('nik', $nik)->first();
+
+        if ($emp) {
+            $this->title = "{$emp['name']} ({$emp['nik']}) - {$emp['divisi']}";
+        }
+    }
+
+    public function selectEmployee($name, $nik, $divisi)
+    {
+
+        $this->title = "{$name} ({$nik}) - {$divisi}";
+        $this->selected_nik = $nik;
+        $this->search_keyword = '';
+        $this->employee_result = [];
     }
 }
