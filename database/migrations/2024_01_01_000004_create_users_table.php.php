@@ -14,15 +14,33 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
 
-            // Cukup tulis di bawah id, otomatis urutannya setelah id
-            $table->string('nik', 20)->unique();
-
-            $table->foreignId('department_id')->nullable()->constrained('departments');
+            // Identitas Utama
+            $table->string('nik', 20)->unique()->nullable();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role')->default('staff');
+
+            // --- STRUKTUR ORGANISASI (Yang Sebelumnya Hilang) ---
+
+            // 1. Department (Sudah ada)
+            $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
+
+            // 2. Division (WAJIB DITAMBAHKAN)
+            // Agar tahu user ini ada di divisi mana (Gudang/Produksi/dll)
+            $table->foreignId('division_id')->nullable()->constrained('divisions')->nullOnDelete();
+
+            // 3. Branch (WAJIB DITAMBAHKAN)
+            // Agar tahu user ini di Plant A/B/Head Office
+            $table->string('branch')->nullable();
+
+            // 4. Role & Group
+            $table->string('role')->default('staff'); // staff, manager, director, admin
+
+            // 5. Director Group (WAJIB DITAMBAHKAN)
+            // Penting untuk approval director (finance/commercial/operation)
+            $table->string('director_group')->nullable();
+
             $table->rememberToken();
             $table->timestamps();
         });

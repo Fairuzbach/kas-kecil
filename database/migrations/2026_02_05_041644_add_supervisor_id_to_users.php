@@ -12,16 +12,17 @@ return new class extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            // Kita taruh setelah kolom email atau role (sesuaikan)
-            // Dibuat nullable karena Staff biasa tidak butuh kolom ini
-            $table->string('director_group')->nullable()->after('email');
+            $table->foreignId('supervisor_id')->nullable()->constrained('users')->onDelete('set null');
         });
     }
 
-    public function down()
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('director_group');
+            //
         });
     }
 };
