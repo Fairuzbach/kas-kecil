@@ -18,4 +18,12 @@ class Department extends Model
     {
         return $this->belongsToMany(Coa::class, 'coa_department');
     }
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
+    public function divisions()
+    {
+        return $this->hasMany(Division::class);
+    }
 }
