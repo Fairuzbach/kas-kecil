@@ -38,6 +38,8 @@ class DepartmentSeeder extends Seeder
             ['code' => '6GA', 'name' => 'GENERAL AFFAIR'],
             ['code' => '6HC', 'name' => 'HUMAN CAPITAL'],
             ['code' => '6HG', 'name' => 'HUMAN CAPITAL DIRECTOR'],
+            ['code' => '6LG', 'name' => 'LEGAL'],
+            ['code' => '6RD', 'name' => 'RESEARCH & DEVELOPMENT'],
         ];
 
         foreach ($departments as $dept) {
