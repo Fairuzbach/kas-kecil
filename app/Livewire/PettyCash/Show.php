@@ -16,6 +16,24 @@ class Show extends Component
         $this->request = $pettyCashRequest->load(['details.coa', 'user', 'department']);
     }
 
+    public function approveSupervisor()
+    {
+        if (auth()->id() !== $this->request->approver_id) {
+            abort(403, 'Anda bukan approver yang dipilih oleh Requester.');
+        }
+
+        $this->request->update([
+            'status' => PettyCashStatus::PENDING_MANAGER,
+            'supervisor_approved_at' => now()
+        ]);
+
+        $this->dispatch('swal', [
+            'title' => 'Berhasil!',
+            'text'  => 'Pengajuan akan diteruskan ke Manager.',
+            'icon'  => 'success'
+        ]);
+    }
+
     public function approveManager()
     {
         if (auth()->user()->role !==  'manager') {
@@ -36,27 +54,26 @@ class Show extends Component
             'manager_id' => auth()->user(),
         ]);
 
-        session()->flash('success', 'Disetujui! Status berubah ke ' . $nextStatus->label());
+        $this->dispatch('swal', [
+            'title' => 'Berhasil!',
+            'text'  => $message,
+            'icon'  => 'success'
+        ]);
     }
 
     public function approveDirector()
     {
         $user = auth()->user();
+        if (auth()->user()->role !== 'director') {
+            abort(403, 'Akses ditolak');
+        }
 
-        $requiredGroup = $this->request->user->department->director_group;
-
-        if ($user->director_group !== $requiredGroup) {
-            $mapNames = [
-                'manufacturing' => 'Manufacturing Director',
-                'finance' => 'Finance Director',
-                'president' => 'President Director',
-                'hc' => 'Human Capital Director',
-                'commercial' => 'Commercial Director',
-            ];
-
-            $bossName = $mapNames[$requiredGroup] ?? 'Direktur Terkait';
-
-            session()->flash('error', "Anda tidak memiliki akses. Tiket ini wewenang $bossName.");
+        if ($this->request->status->value !== 'pending_director') {
+            $this->dispatch('swal', [
+                'title' => 'Gagal',
+                'text'  => 'Status tiket tidak valid.',
+                'icon'  => 'error'
+            ]);
             return;
         }
 
@@ -65,8 +82,12 @@ class Show extends Component
             'director_approved_at' => now(),
             'director_id' => $user->id,
         ]);
-
-        session()->flash('success', 'Approval Direktur berhasil.');
+        $this->request->refresh();
+        $this->dispatch('swal', [
+            'title' => 'Berhasil!',
+            'text'  => 'Berhasil approve, akan diteruskan ke tim FA',
+            'icon'  => 'success'
+        ]);
     }
 
     public function approveKlinik()
@@ -83,7 +104,11 @@ class Show extends Component
         $this->request->update([
             'status' => \App\Enums\PettyCashStatus::PENDING_HC,
         ]);
-        session()->flash('success', 'Validasi Medis Berhasil. Lanjut ke HC/Finance.');
+        $this->dispatch('swal', [
+            'title' => 'Berhasil!',
+            'text'  => 'Berhasil approve, Akan diteruskan ke Tim HC',
+            'icon'  => 'success'
+        ]);
     }
 
     public function approveHC()
@@ -98,7 +123,11 @@ class Show extends Component
         $this->request->update([
             'status' => \App\Enums\PettyCashStatus::PENDING_FINANCE
         ]);
-        session()->flash('success', 'Plafon disetujui. Tiket diteruskan ke Finance.');
+        $this->dispatch('swal', [
+            'title' => 'Berhasil!',
+            'text'  => 'Berhasil Approve, akan diteruskan ke Tim FA',
+            'icon'  => 'success'
+        ]);
     }
 
     public function approveFinance()
@@ -115,7 +144,11 @@ class Show extends Component
         $this->request->update([
             'status' => \App\Enums\PettyCashStatus::PAID,
         ]);
-        session()->flash('success', 'Dana Berhasil Dicairkan! Proses Selesai.');
+        $this->dispatch('swal', [
+            'title' => 'Berhasil!',
+            'text'  => 'Dana berhasil dibayar/dicairkan!',
+            'icon'  => 'success'
+        ]);
     }
     public function render()
     {
