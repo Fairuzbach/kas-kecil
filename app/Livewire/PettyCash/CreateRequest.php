@@ -22,6 +22,8 @@ class CreateRequest extends Component
     public $is_searching = false;
     public $division_employees = [];
     public $selected_employee_id;
+    public $selected_approver_id;
+    public $supervisors = [];
 
 
 
@@ -30,6 +32,9 @@ class CreateRequest extends Component
 
         $user = auth()->user();
         $this->user_department = $user->department ? ($user->department->code . ' - ' . $user->department->name) : 'No Department';
+        $this->supervisors = \App\Models\User::where('role', 'supervisor')
+            ->where('division_id', $user->division_id)
+            ->get();
     }
 
 
@@ -106,13 +111,23 @@ class CreateRequest extends Component
             }
         }
 
+        $hasSupervisors = count($this->supervisors) > 0;
+
+        if ($this->type !== 'pengobatan' && $hasSupervisors && empty($this->selected_approver_id)) {
+            $this->addError('selected_approver_id', 'Anda wajib memilih Supervisor untuk Approval.');
+        }
+
         if ($status === 'draft') {
             $statusEnum = \App\Enums\PettyCashStatus::DRAFT;
         } else {
-            if ($this->type === 'pengobatan' && $user->supervisor_id) {
-                $statusEnum = \App\Enums\PettyCashStatus::PENDING_SUPERVISOR;
-            } else {
+            if ($this->type === 'pengobatan') {
                 $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
+            } else {
+                if ($user->selected_approver_id) {
+                    $statusEnum = \App\Enums\PettyCashStatus::PENDING_SUPERVISOR;
+                } else {
+                    $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
+                }
             }
         }
         $cleanedItems = collect($this->items)->map(function ($item) {
@@ -131,7 +146,9 @@ class CreateRequest extends Component
             'attachment'       => $mainFile,
             'extra_attachment' => $extraFile,
             'items'            => $cleanedItems,
+            'approver_id' => $this->selected_approver_id,
             'status'           => $statusEnum,
+
         ], auth()->user());
 
         $this->reset([
