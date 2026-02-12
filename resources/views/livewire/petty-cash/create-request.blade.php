@@ -1,58 +1,90 @@
 <div>
-    <form wire:submit="save('pending_manager')" class="space-y-4">
-
-        <div class="max-h-[70vh] overflow-y-auto px-1">
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700">Kode Department dan Department Pemohon</label>
-                <input type="text" wire:model="user_department" readonly
-                    class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 text-sm shadow-sm cursor-not-allowed">
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-
+    <form wire:submit="save('pending_manager')" class="space-y-8 pb-10">
+        {{-- 1. HEADER SECTION --}}
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 -m-6 mb-6 p-6 rounded-t-xl shadow-lg">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z">
+                        </path>
+                    </svg>
+                </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Jenis (Tipe Tiket) <span
-                            class="text-red-500">*</span></label>
+                    <h2 class="text-2xl font-bold text-white">Pengajuan Petty Cash</h2>
+                    <p class="text-blue-100 text-sm">Lengkapi form di bawah untuk mengajukan permohonan dana</p>
+                </div>
+            </div>
+        </div>
+        {{-- INFO DEPARTMENT --}}
+        <div class="bg-white rounded-xl p-5 border-l-4 border-blue-500 shadow-sm flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Department Pemohon</label>
+                <div class="font-bold text-gray-800 text-lg">{{ $user_department }}</div>
+            </div>
+        </div>
+        {{-- 2. GRID UTAMA (KIRI & KANAN) --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {{-- >>> KOLOM KIRI: FORM INPUT DASAR <<< --}}
+            <div class="space-y-6">
+                {{-- JENIS TIKET --}}
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 text-sm font-bold text-gray-700">
+                        <span
+                            class="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs">1</span>
+                        Jenis Pengajuan <span class="text-red-600">*</span>
+                    </label>
                     <select wire:model.live="type"
-                        class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm">
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2.5">
                         <option value="">-- Pilih Jenis --</option>
-                        @foreach ($types as $t)
-                            <option value="{{ $t->value }}">{{ $t->label() }}</option>
+                        @foreach (\App\Enums\PettyCashType::cases() as $type)
+                            <option value="{{ $type->value }}" {{ $type->value === 'pengobatan' ? 'disabled' : '' }}>
+                                {{ strtoupper($type->name) }} {{ $type->value === 'pengobatan' ? '(Nonaktif)' : '' }}
+                            </option>
                         @endforeach
                     </select>
                     @error('type')
                         <span class="text-red-500 text-xs">{{ $message }}</span>
                     @enderror
                 </div>
+                {{-- INPUT DINAMIS: CARI KARYAWAN / DIBAYAR KEPADA --}}
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 text-sm font-bold text-gray-700">
+                        <span
+                            class="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs">2</span>
+                        {{ $type === 'pengobatan' ? 'Cari Karyawan' : 'Dibayar Kepada / Keperluan' }} <span
+                            class="text-red-600">*</span>
+                    </label>
 
-                <div>
                     @if ($type === 'pengobatan')
-                        <label class="block text-sm font-bold text-teal-700">Cari Karyawan <span
-                                class="text-red-500">*</span></label>
-
-                        <div class="relative mt-1">
-
+                        {{-- MODE PENGOBATAN: SEARCH --}}
+                        <div class="relative">
                             <input type="text" wire:model="title" readonly
-                                placeholder="Hasil pilihan akan muncul disini..."
-                                class="block w-full rounded-md border-teal-300 bg-gray-100 text-sm shadow-sm font-bold text-gray-700 mb-2 cursor-not-allowed">
+                                class="block w-full rounded-lg bg-gray-50 border-gray-300 text-gray-500 cursor-not-allowed text-sm py-2.5 mb-2"
+                                placeholder="Nama karyawan akan muncul disini...">
 
                             <div class="relative">
                                 <input type="text" wire:model.live.debounce.300ms="search_keyword"
-                                    placeholder="🔍 Ketik Nama atau NIK (Min. 2 huruf)..."
-                                    class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 pl-8">
-
-                                <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                                    <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
+                                    placeholder="🔍 Ketik Nama/NIK..."
+                                    class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 text-sm py-2.5 pl-10">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
                                 </div>
-
+                                {{-- Loading Search --}}
                                 <div wire:loading wire:target="search_keyword"
-                                    class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                    <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg"
+                                    class="absolute inset-y-0 right-3 flex items-center">
+                                    <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg"
                                         fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10"
                                             stroke="currentColor" stroke-width="4"></circle>
@@ -63,73 +95,96 @@
                                 </div>
                             </div>
 
+                            {{-- HASIL PENCARIAN --}}
                             @if (!empty($employee_result))
-                                <ul
-                                    class="absolute z-50 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                                <div
+                                    class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-xl max-h-60 overflow-y-auto">
                                     @foreach ($employee_result as $emp)
-                                        <li wire:click="selectEmployee('{{ $emp['name'] }}', '{{ $emp['nik'] }}', '{{ $emp['division_name'] }}')"
-                                            class="px-4 py-2 hover:bg-teal-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors group">
-
+                                        <div wire:click="selectEmployee('{{ $emp['name'] }}', '{{ $emp['nik'] }}', '{{ $emp['division_name'] }}')"
+                                            class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 group">
                                             <div class="flex justify-between items-center">
                                                 <div>
                                                     <div
-                                                        class="font-bold text-sm text-gray-800 group-hover:text-teal-700">
-                                                        {{ $emp['name'] }}
-                                                    </div>
-                                                    <div class="text-xs text-gray-500">
-                                                        NIK: {{ $emp['nik'] }}
-                                                    </div>
+                                                        class="font-bold text-gray-800 text-sm group-hover:text-blue-600">
+                                                        {{ $emp['name'] }}</div>
+                                                    <div class="text-xs text-gray-500">NIK: {{ $emp['nik'] }}</div>
                                                 </div>
-
-
-                                                <div
-                                                    class="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded group-hover:bg-teal-100 group-hover:text-teal-800">
-                                                    {{ $emp['division_name'] }}
-                                                </div>
+                                                <span
+                                                    class="text-[10px] bg-gray-100 px-2 py-1 rounded-full">{{ $emp['division_name'] }}</span>
                                             </div>
-                                        </li>
+                                        </div>
                                     @endforeach
-                                </ul>
-                            @endif
-
-                            @if (strlen($search_keyword) >= 2 && empty($employee_result))
-                                <div
-                                    class="absolute z-50 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg p-2 text-center text-xs text-red-500">
-                                    Data tidak ditemukan.
                                 </div>
+                            @elseif(strlen($search_keyword) >= 2)
+                                <div
+                                    class="absolute z-10 w-full bg-white border border-red-200 rounded-lg mt-1 shadow p-3 text-center text-red-500 text-sm">
+                                    Data tidak ditemukan</div>
                             @endif
-
                         </div>
-                        <p class="text-[10px] text-gray-500 mt-1">
-                            *Data difilter berdasarkan divisi: {{ auth()->user()->department->name ?? '-' }}
-                        </p>
                     @else
-                        <label class="block text-sm font-medium text-gray-700">Dibayar Kepada / Keperluan <span
-                                class="text-red-500">*</span></label>
+                        {{-- MODE UMUM: INPUT TEXT BIASA --}}
                         <input type="text" wire:model="title" placeholder="Contoh: Toko Makmur Jaya"
-                            class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm">
+                            class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 text-sm py-2.5">
                     @endif
-
                     @error('title')
                         <span class="text-red-500 text-xs">{{ $message }}</span>
                     @enderror
                 </div>
             </div>
 
-            <div
-                class="mb-4 p-4 rounded-lg border {{ $type === 'pengobatan' ? 'bg-teal-50 border-teal-200' : 'bg-gray-50 border-gray-200' }}">
+            {{-- >>> KOLOM KANAN: SUPERVISOR & UPLOAD <<< --}}
+            <div class="bg-gray-50 rounded-xl p-6 border border-gray-200 h-full">
 
-                {{-- Logic Tampilan Supervisor --}}
-                @if ($type !== 'pengobatan')
-                    <div class="mb-4">
-                        <label class="block font-medium text-sm text-gray-700">Supervisor Penyetuju</label>
+                @if ($type === 'pengobatan')
+                    {{-- UPLOAD KHUSUS PENGOBATAN --}}
+                    <div class="space-y-4">
+                        <h4
+                            class="font-bold text-sm text-red-700 flex items-center gap-2 border-b border-red-200 pb-2 mb-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            Dokumen Medis Wajib
+                        </h4>
+
+                        {{-- 1. KWITANSI --}}
+                        <div>
+                            <label class="text-xs font-bold text-gray-700 mb-1 block">Kwitansi RS/Klinik <span
+                                    class="text-red-500">*</span></label>
+                            <input type="file" wire:model="attachment_receipt" accept="image/*,.pdf"
+                                class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+                            @error('attachment_receipt')
+                                <span class="text-red-500 text-xs">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        {{-- 2. RESEP --}}
+                        <div>
+                            <label class="text-xs font-bold text-gray-700 mb-1 block">Resep Dokter <span
+                                    class="text-red-500">*</span></label>
+                            <input type="file" wire:model="attachment_prescription" accept="image/*,.pdf"
+                                class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+                            @error('attachment_prescription')
+                                <span class="text-red-500 text-xs">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                @else
+                    {{-- INPUT SUPERVISOR (UNTUK UMUM) --}}
+                    <div class="space-y-4">
+                        <label class="flex items-center gap-2 text-sm font-bold text-gray-700">
+                            <span
+                                class="w-6 h-6 bg-yellow-100 text-yellow-600 rounded flex items-center justify-center text-xs">3</span>
+                            Supervisor Penyetuju
+                        </label>
+
                         @if (count($supervisors) > 0)
                             <select wire:model="selected_approver_id"
-                                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm w-full mt-1">
+                                class="block w-full rounded-lg border-gray-300 focus:border-yellow-500 focus:ring focus:ring-yellow-200 text-sm py-2.5">
                                 <option value="">-- Pilih Supervisor --</option>
                                 @foreach ($supervisors as $spv)
-                                    <option value="{{ $spv['id'] ?? $spv->id }}">
-                                        {{ $spv['name'] ?? $spv->name }}
+                                    <option value="{{ $spv['id'] ?? $spv->id }}">{{ $spv['name'] ?? $spv->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -138,191 +193,177 @@
                             @enderror
                         @else
                             <div
-                                class="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700 flex items-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800 flex gap-2">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span>
-                                    Tidak ada Supervisor ditemukan. Pengajuan akan <strong>langsung dikirim ke
-                                        Manager</strong>.
-                                </span>
+                                <span>Tidak ada Supervisor. Pengajuan akan langsung ke Manager.</span>
                             </div>
                         @endif
-                    </div>
 
-                @endif
-                @if ($type === 'pengobatan')
-                    <h4 class="font-bold text-sm text-teal-800 mb-3 flex items-center gap-2">
-                        🏥 Dokumen Medis Wajib
-                    </h4>
+                        {{-- UPLOAD LAMPIRAN UMUM --}}
+                        <div class="pt-4 border-t border-gray-200">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Lampiran (Struk/Invoice) <span
+                                    class="text-red-600">*</span></label>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1">1. Kwitansi RS/Klinik <span
-                                    class="text-red-500">*</span></label>
-                            <input type="file" wire:model="attachment_receipt" accept="image/*,application/pdf"
-                                class="block w-full text-xs text-gray-500 border border-gray-300 rounded cursor-pointer bg-white">
-                            @error('attachment_receipt')
-                                <span class="text-red-500 text-xs block mt-1">{{ $message }}</span>
+                            <div class="relative">
+                                <input type="file" wire:model="attachment" accept="image/*,.pdf"
+                                    class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border rounded-lg p-2 bg-white">
+
+                                {{-- Loading Indicator --}}
+                                <div wire:loading wire:target="attachment" class="absolute top-2 right-2">
+                                    <span
+                                        class="text-xs text-blue-600 font-bold bg-white px-2 py-1 rounded shadow animate-pulse">⏳
+                                        Uploading...</span>
+                                </div>
+                            </div>
+
+                            {{-- Preview File --}}
+                            @if ($attachment && !is_string($attachment))
+                                <div class="mt-2 flex items-center gap-3 bg-white p-2 rounded border border-blue-100">
+                                    @if (in_array($attachment->extension(), ['jpg', 'jpeg', 'png', 'webp']))
+                                        <img src="{{ $attachment->temporaryUrl() }}"
+                                            class="h-10 w-10 object-cover rounded">
+                                    @else
+                                        <div
+                                            class="h-10 w-10 flex items-center justify-center bg-red-100 text-red-500 rounded font-bold text-xs">
+                                            PDF</div>
+                                    @endif
+                                    <div class="text-xs text-gray-600 overflow-hidden">
+                                        <p class="font-bold truncate">{{ $attachment->getClientOriginalName() }}</p>
+                                        <p>{{ round($attachment->getSize() / 1024) }} KB</p>
+                                    </div>
+                                </div>
+                            @endif
+                            @error('attachment')
+                                <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1">2. Resep Dokter <span
-                                    class="text-red-500">*</span></label>
-                            <input type="file" wire:model="attachment_prescription" accept="image/*,application/pdf"
-                                class="block w-full text-xs text-gray-500 border border-gray-300 rounded cursor-pointer bg-white">
-                            @error('attachment_prescription')
-                                <span class="text-red-500 text-xs block mt-1">{{ $message }}</span>
-                            @enderror
-                        </div>
                     </div>
-                    <p class="text-[10px] text-gray-500 mt-2">*Format: JPG, PNG, PDF. Max 2MB.</p>
-                @else
-                    <label class="block text-sm font-medium text-gray-700">Lampiran (Struk/Invoice)</label>
-                    <input type="file" wire:model="attachment" accept="image/*,application/pdf"
-                        class="mt-1 block w-full text-xs text-gray-500 border border-gray-300 rounded cursor-pointer bg-white">
-                    @error('attachment')
-                        <span class="text-red-500 text-xs block mt-1">{{ $message }}</span>
-                    @enderror
                 @endif
-
-                <div wire:loading wire:target="attachment, attachment_receipt, attachment_prescription"
-                    class="text-xs text-blue-600 mt-2 font-bold animate-pulse">
-                    Sedang mengupload dokumen... Harap tunggu.
-                </div>
             </div>
 
-            <hr class="my-4 border-gray-200">
+        </div>
+        {{-- 3. SECTION FULL WIDTH (RINCIAN BIAYA) --}}
+        {{-- RINCIAN BIAYA --}}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-b border-gray-200">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Rincian Biaya
+                </h3>
+                <button type="button" wire:click="addItem"
+                    class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                        </path>
+                    </svg>
+                    Tambah Baris
+                </button>
+            </div>
 
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="font-bold text-gray-700 text-sm">Rincian Biaya</h3>
-                    <button type="button" wire:click="addItem"
-                        class="text-blue-600 hover:text-blue-800 text-xs font-bold">
-                        + Tambah Baris
-                    </button>
-                </div>
-
-                <table class="min-w-full border border-gray-200 mb-2">
-                    <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-2 py-2 text-left">Item / Deskripsi</th>
-                            <th class="px-2 py-2 text-left w-1/3">COA (Akun)</th>
-                            <th class="px-2 py-2 text-left w-24">Nominal (Rp)</th>
-                            <th class="px-1 py-2 w-8"></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Item / Deskripsi
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase w-1/3">COA (Akun)
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase w-32">Nominal (Rp)
+                            </th>
+                            <th class="px-2 py-3 w-10"></th>
                         </tr>
                     </thead>
-                    <tbody class="text-sm">
+                    <tbody class="divide-y divide-gray-100">
                         @foreach ($items as $index => $item)
-                            <tr class="border-t align-top">
-
-                                <td class="p-1">
+                            <tr>
+                                <td class="px-4 py-3">
                                     <input type="text" wire:model="items.{{ $index }}.item_name"
-                                        class="w-full text-xs rounded border-gray-300 py-1 focus:border-teal-500 focus:ring-teal-500 
-                           @error('items.' . $index . '.item_name') border-red-500 @enderror"
-                                        placeholder="Nama barang/jasa...">
-
-
+                                        class="w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                        placeholder="Nama barang...">
                                     @error('items.' . $index . '.item_name')
-                                        <div class="text-[10px] text-red-500 mt-1">{{ $message }}</div>
+                                        <p class="text-[10px] text-red-500 mt-1">{{ $message }}</p>
                                     @enderror
                                 </td>
-
-                                <td class="p-1">
+                                <td class="px-4 py-3">
                                     <select wire:model="items.{{ $index }}.coa_id"
-                                        class="w-full text-xs rounded border-gray-300 py-1 focus:border-teal-500 focus:ring-teal-500
-                           @error('items.' . $index . '.coa_id') border-red-500 @enderror">
-
-                                        <option value="">
-                                            -- Pilih COA {{ $type === 'pengobatan' ? '(Opsional)' : '' }} --
-                                        </option>
-
+                                        class="w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                        <option value="">-- Pilih COA --</option>
                                         @foreach ($coas as $c)
-                                            <option value="{{ $c->id }}">
-                                                {{ $c->code }} - {{ $c->name }}
-                                            </option>
+                                            <option value="{{ $c->id }}">{{ $c->code }} -
+                                                {{ $c->name }}</option>
                                         @endforeach
                                     </select>
-
-
                                     @error('items.' . $index . '.coa_id')
-                                        <div class="text-[10px] text-red-500 mt-1">{{ $message }}</div>
+                                        <p class="text-[10px] text-red-500 mt-1">{{ $message }}</p>
                                     @enderror
                                 </td>
-
-                                <td class="p-1">
+                                <td class="px-4 py-3">
                                     <input type="number" wire:model.live="items.{{ $index }}.amount"
-                                        class="w-full text-xs rounded border-gray-300 py-1 text-right focus:border-teal-500 focus:ring-teal-500
-                           @error('items.' . $index . '.amount') border-red-500 @enderror"
+                                        class="w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-right"
                                         placeholder="0">
-
-
                                     @error('items.' . $index . '.amount')
-                                        <div class="text-[10px] text-red-500 mt-1">{{ $message }}</div>
+                                        <p class="text-[10px] text-red-500 mt-1">{{ $message }}</p>
                                     @enderror
                                 </td>
-
-                                <td class="p-1 text-center align-middle">
+                                <td class="px-2 py-3 text-center">
                                     @if (count($items) > 1)
                                         <button type="button" wire:click="removeItem({{ $index }})"
-                                            class="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-colors"
-                                            title="Hapus Baris">
-
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                viewBox="0 0 24 24" stroke="currentColor">
+                                            class="text-gray-400 hover:text-red-500 transition"><svg class="w-5 h-5"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                </path>
+                                            </svg></button>
                                     @endif
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
+            </div>
 
-
-                @error('items')
-                    <span class="text-red-500 text-xs block">{{ $message }}</span>
-                @enderror
-                @foreach ($errors->get('items.*') as $message)
-                    <span class="text-red-500 text-xs block">* Mohon lengkapi data barang dan nominal.</span>
-                @break
-            @endforeach
-
-            <div class="text-right text-sm font-bold mt-2 bg-gray-50 p-2 rounded">
-                Total Pengajuan: Rp {{ number_format($this->total, 0, ',', '.') }}
+            {{-- TOTAL FOOTER --}}
+            <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
+                <div class="text-sm font-bold text-gray-600">Total Pengajuan:</div>
+                <div class="text-2xl font-extrabold text-blue-700">Rp {{ number_format($this->total, 0, ',', '.') }}
+                </div>
             </div>
         </div>
 
-        <div class="mt-4">
-            <label class="block text-sm font-medium text-gray-700">Keterangan Tambahan</label>
-            <textarea wire:model="description" rows="2" placeholder="Catatan opsional..."
-                class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm"></textarea>
+        {{-- KETERANGAN TAMBAHAN --}}
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Keterangan Tambahan <span
+                    class="font-normal text-gray-400">(Opsional)</span></label>
+            <textarea wire:model="description" rows="2"
+                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 text-sm"
+                placeholder="Catatan..."></textarea>
         </div>
-    </div>
 
-    <div class="mt-6 flex justify-between border-t pt-4">
-        <button type="button" x-on:click="$dispatch('close-modal', 'create-request-modal')"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-bold">
-            Batal
-        </button>
+        {{-- TOMBOL AKSI --}}
+        <div class="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
+            <button type="button" x-on:click="$dispatch('close-modal')"
+                class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition">Batal</button>
 
-        <div class="flex gap-2">
             <button type="button" wire:click="save('draft')" wire:loading.attr="disabled"
-                class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm font-bold shadow-sm flex items-center disabled:opacity-50">
+                class="px-6 py-2.5 bg-yellow-500 text-white rounded-lg font-bold hover:bg-yellow-600 transition disabled:opacity-50">
                 <span wire:loading.remove wire:target="save('draft')">Simpan Draft</span>
                 <span wire:loading wire:target="save('draft')">Menyimpan...</span>
             </button>
 
             <button type="submit" wire:loading.attr="disabled"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-bold shadow-sm flex items-center disabled:opacity-50">
+                class="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-lg disabled:opacity-50">
                 <span wire:loading.remove wire:target="save">Kirim Pengajuan</span>
                 <span wire:loading wire:target="save">Mengirim...</span>
             </button>
         </div>
-    </div>
-</form>
+
+    </form>
 </div>
