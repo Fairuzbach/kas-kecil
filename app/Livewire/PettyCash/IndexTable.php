@@ -56,6 +56,8 @@ class IndexTable extends Component
             $query->where('type', 'pengobatan');
             $query->whereIn('status', [
                 \App\Enums\PettyCashStatus::PENDING_HC,      // Inbox Alinda
+                \App\Enums\PettyCashStatus::PENDING_SUPERVISOR,
+                \App\Enums\PettyCashStatus::PENDING_MANAGER,
                 \App\Enums\PettyCashStatus::PENDING_FINANCE, // History (Menunggu bayar)
                 \App\Enums\PettyCashStatus::PAID             // History (Selesai)
             ]);

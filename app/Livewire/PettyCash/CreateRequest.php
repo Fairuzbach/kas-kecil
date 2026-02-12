@@ -62,83 +62,76 @@ class CreateRequest extends Component
 
     public function save($status = 'pending_manager')
     {
-        $user = auth()->user();
 
+        if ($this->type === 'pengobatan') {
+            $this->dispatch('swal', [
+                'title' => 'Fitur Dinonaktifkan',
+                'text'  => 'Mohon maaf, pengajuan tipe pengobatan sedang dinonaktifkan sementara.',
+                'icon'  => 'warning'
+            ]);
+            return; // Stop disini
+        }
 
         $this->items = collect($this->items)->filter(function ($item) {
             return trim($item['item_name']) !== '';
         })->values()->all();
 
-
         if (empty($this->items)) {
             $this->addError('items', 'Minimal harus ada 1 baris item.');
             return;
         }
-        $coaRule = ($this->type === 'pengobatan') ? 'nullable' : 'required|exists:coas,id';
+        $coaRule = 'required|exists:coas,id';
 
         $rules = [
-            'title' => 'required|string|max:255',
-            'type' => 'required',
-            'items' => 'required|array|min:1',
+            'title'             => 'required|string|max:255',
+            'type'              => 'required',
+            'items'             => 'required|array|min:1',
             'items.*.item_name' => 'required|string',
-            'items.*.amount' => 'required|numeric|min:1000',
-            'items.*.coa_id' => $coaRule,
+            'items.*.amount'    => 'required|numeric|min:1000',
+            'items.*.coa_id'    => $coaRule,
+            // Validasi Attachment Umum
+            'attachment'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ];
-
-        if ($this->type === 'pengobatan') {
-            $rules['attachment_receipt'] = 'required|image|max:2048';
-            $rules['attachment_prescription'] = 'required|image|max:2048';
-        } else {
-            $rules['attachment'] = 'nullable|image|max:2048';
+        //         if ($this->type === 'pengobatan') {
+        //     $rules['attachment_receipt'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:2048';
+        //     $rules['attachment_prescription'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:2048';
+        // }
+        $hasSupervisors = count($this->supervisors ?? []) > 0;
+        if ($hasSupervisors) {
+            $rules['selected_approver_id'] = 'required';
         }
 
         $this->validate($rules);
 
-
         $mainFile = null;
         $extraFile = null;
 
-        if ($this->type === 'pengobatan') {
-            if ($this->attachment_receipt) {
-                $mainFile = $this->attachment_receipt->store('attachments', 'public');
-            }
-            if ($this->attachment_prescription) {
-                $extraFile = $this->attachment_prescription->store('attachments', 'public');
-            }
-        } else {
-            if ($this->attachment) {
-                $mainFile = $this->attachment->store('attachments', 'public');
-            }
+        if ($this->attachment) {
+            $mainFile = $this->attachment->store('attachments', 'public');
         }
 
-        $hasSupervisors = count($this->supervisors) > 0;
+        // (Opsional) Jika nanti pengobatan aktif lagi, logic extraFile taruh disini
 
-        if ($this->type !== 'pengobatan' && $hasSupervisors && empty($this->selected_approver_id)) {
-            $this->addError('selected_approver_id', 'Anda wajib memilih Supervisor untuk Approval.');
-        }
+        $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
 
         if ($status === 'draft') {
             $statusEnum = \App\Enums\PettyCashStatus::DRAFT;
         } else {
-            if ($this->type === 'pengobatan') {
-                $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
+            if (!empty($this->selected_approver_id)) {
+                $statusEnum = \App\Enums\PettyCashStatus::PENDING_SUPERVISOR;
             } else {
-                if ($user->selected_approver_id) {
-                    $statusEnum = \App\Enums\PettyCashStatus::PENDING_SUPERVISOR;
-                } else {
-                    $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
-                }
+                $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
             }
         }
-        $cleanedItems = collect($this->items)->map(function ($item) {
 
-            $coaValue = $item['coa_id'];
+        $cleanedItems = collect($this->items)->map(function ($item) {
             return [
                 'item_name' => $item['item_name'],
                 'amount'    => $item['amount'],
-                'coa_id'    => empty($coaValue) ? null : $coaValue,
+                'coa_id'    => $item['coa_id'] ?? null,
             ];
         })->toArray();
+
         app(\App\Services\PettyCashService::class)->createRequest([
             'title'            => $this->title,
             'type'             => $this->type,
@@ -146,9 +139,8 @@ class CreateRequest extends Component
             'attachment'       => $mainFile,
             'extra_attachment' => $extraFile,
             'items'            => $cleanedItems,
-            'approver_id' => $this->selected_approver_id,
+            'approver_id'      => $this->selected_approver_id,
             'status'           => $statusEnum,
-
         ], auth()->user());
 
         $this->reset([
@@ -156,26 +148,20 @@ class CreateRequest extends Component
             'type',
             'description',
             'attachment',
-            'attachment_receipt',
-            'attachment_prescription',
-            'search_keyword',
-            'employee_result'
+            'selected_approver_id',
+            'items'
         ]);
 
         $this->items = [['item_name' => '', 'amount' => '', 'coa_id' => '']];
 
-        if ($status === 'draft') {
-            $msg = 'Disimpan sebagai Draft.';
-        } elseif ($statusEnum === \App\Enums\PettyCashStatus::PENDING_SUPERVISOR) {
-            $msg = 'Pengajuan kesehatan dikirim ke Supervisor';
-        } else {
-            $msg = 'Pengajuan dikirim ke Manager';
-        }
+        $msg = ($status === 'draft') ? 'Disimpan sebagai Draft.' : 'Pengajuan berhasil dibuat!';
 
         session()->flash('success', $msg);
         $this->dispatch('request-created');
-    }
 
+
+        return redirect()->route('dashboard');
+    }
     public function details()
     {
         return $this->hasMany(PettyCashDetail::class);
