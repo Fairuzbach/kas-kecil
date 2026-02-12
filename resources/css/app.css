@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'status-timeline-animation.css';
+
+/* Status Approval Timeline Animations */
+/* Add this to your app.css or main CSS file */
+
+/* Pulse Ring Animation for Active Status */
