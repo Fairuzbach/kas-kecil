@@ -13,6 +13,7 @@ class PettyCashRequest extends Model
     protected $fillable = [
         'tracking_number',
         'user_id',
+        'approver_id',
         'department_id',
         'title',
         'description',
@@ -21,6 +22,17 @@ class PettyCashRequest extends Model
         'status',
         'attachment',
         'extra_attachment',
+        'supervisor_approved_at',
+        'manager_approved_at',
+        'manager_approved_id',
+        'finance_approved_at',
+        'finance_approved_id',
+        'director_approved_at',
+        'director_approved_id',
+        'hc_approved_at',
+        'klinik_approved_at',
+        'rejected_at',
+        'rejected_reason',
     ];
 
     protected $casts = [
@@ -31,6 +43,9 @@ class PettyCashRequest extends Model
         'manager_approved_at'    => 'datetime',
         'director_approved_at'   => 'datetime',
         'finance_approved_at'    => 'datetime',
+        'hc_approved_at' => 'datetime',
+        'klinik_approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     protected static function booted()
@@ -63,5 +78,9 @@ class PettyCashRequest extends Model
     public function coa(): BelongsTo
     {
         return $this->belongsTo(Coa::class);
+    }
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approver_id');
     }
 }
