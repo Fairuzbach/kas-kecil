@@ -21,9 +21,7 @@
             <x-modal name="create-request-modal" :show="$errors->any()" focusable>
 
                 <div class="p-6">
-                    <h2 class="text-lg font-medium text-gray-900 mb-4">
-                        Form Pengajuan Baru
-                    </h2>
+
 
                     <livewire:petty-cash.create-request />
                 </div>
