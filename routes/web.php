@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\PettyCash\CreateRequest; // <--- Jangan lupa import ini
 use App\Livewire\PettyCash\Show;
+use App\Livewire\Finance\Dashboard;
 
 Route::get('/', function () {
     return view('welcome');
@@ -25,6 +26,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/petty-cash/{pettyCashRequest}', \App\Livewire\PettyCash\Show::class)
         ->name('petty-cash.show');
 });
-
+Route::middleware(['auth', 'role:finance'])->group(function () {
+    Route::get('/finance/dashboard', Dashboard::class)->name('finance.dashboard');
+});
 // Baris ini sekarang PASTI berhasil karena filenya sudah digenerate ulang
 require __DIR__ . '/auth.php';
