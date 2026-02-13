@@ -134,18 +134,18 @@ class EmployeeImport implements ToCollection
 
         // 🛠️ MAINTENANCE
         if (str_contains($o, 'MAINTENANCE') || str_contains($j, 'MAINTENANCE')) {
-            return ['dept' => 'MAINTENANCE', 'divisi' => $targetDiv];
+            return ['dept' => 'MAINTENANCE MANAGER', 'divisi' => $targetDiv];
         }
 
         // 🧪 QC / QA
         if (str_contains($o, 'QUALITY') || str_contains($o, 'QC') || str_contains($o, 'QA') || str_contains($j, 'QUALITY')) {
             if (str_contains($o, 'ASSURANCE') || str_contains($j, 'ASSURANCE')) {
-                return ['dept' => 'QUALITY ASSURANCE & R D', 'divisi' => $targetDiv];
+                return ['dept' => 'QUALITY ASSURANCE & R D MANAGER', 'divisi' => $targetDiv];
             }
-            return ['dept' => 'QUALITY CONTROL', 'divisi' => $targetDiv];
+            return ['dept' => 'QUALITY CONTROL MANAGER', 'divisi' => $targetDiv];
         }
-        if (str_contains($o, 'PROCESS ENGINEERING')) return ['dept' => 'PROCESS ENGINEERING', 'divisi' => $targetDiv];
-        if (str_contains($o, 'PRODUCTION PLANNING')) return ['dept' => 'PRODUCTION PLANNING', 'divisi' => $targetDiv];
+        if (str_contains($o, 'PROCESS ENGINEERING')) return ['dept' => 'PROCESS ENGINEERING MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'PRODUCTION PLANNING')) return ['dept' => 'PRODUCTION PLANNING MANAGER', 'divisi' => $targetDiv];
         if (str_contains($o, 'DIREKTUR') || str_contains($j, 'DIRECTOR')) {
             return ['dept' => 'DIR', 'divisi' => $targetDiv];
         }
@@ -153,35 +153,37 @@ class EmployeeImport implements ToCollection
         // ==========================================
         // LEVEL 2: ATURAN PLANT
         // ==========================================
-        if (str_contains($o, 'AUTOWIRE') || str_contains($j, 'AUTOWIRE')) return ['dept' => 'LOW VOLTAGE', 'divisi' => 'Plant A - Autowire'];
-        if (str_contains($o, 'CCV') || str_contains($j, 'CCV')) return ['dept' => 'MEDIUM VOLTAGE', 'divisi' => 'Plant D - CCV'];
-        if ($b === 'PLANT E' || str_contains($o, 'PLANT E')) return ['dept' => 'FIBER OPTIC', 'divisi' => $targetDiv];
+        if (str_contains($o, 'AUTOWIRE') || str_contains($j, 'AUTOWIRE')) return ['dept' => 'LOW VOLTAGE MANAGER', 'divisi' => 'Plant A - Autowire'];
+        if (str_contains($o, 'CCV') || str_contains($j, 'CCV')) return ['dept' => 'MEDIUM VOLTAGE MANAGER', 'divisi' => 'Plant D - CCV'];
+        if ($b === 'PLANT E' || str_contains($o, 'PLANT E')) return ['dept' => 'FIBER OPTIC MANAGER', 'divisi' => $targetDiv];
         if ($b === 'PLANT A' || $b === 'PLANT C' || str_contains($o, 'PLANT A') || str_contains($o, 'PLANT C')) {
-            return ['dept' => 'LOW VOLTAGE', 'divisi' => $targetDiv];
+            return ['dept' => 'LOW VOLTAGE MANAGER', 'divisi' => $targetDiv];
         }
         if ($b === 'PLANT B' || $b === 'PLANT D' || str_contains($o, 'PLANT B') || str_contains($o, 'PLANT D')) {
-            return ['dept' => 'MEDIUM VOLTAGE', 'divisi' => $targetDiv];
+            return ['dept' => 'MEDIUM VOLTAGE MANAGER', 'divisi' => $targetDiv];
         }
 
         // ==========================================
         // LEVEL 3: HEAD OFFICE
         // ==========================================
-        if (str_contains($o, 'FINANCE') || str_contains($o, 'ACC') || str_contains($o, 'TAX')) return ['dept' => 'FINANCE & ACCOUNTING', 'divisi' => $targetDiv];
-        if (str_contains($o, 'HC') || str_contains($o, 'HUMAN') || str_contains($o, 'HR')) return ['dept' => 'HUMAN CAPITAL', 'divisi' => $targetDiv];
-        if (str_contains($o, 'FACILITY')) return ['dept' => 'FACILITY', 'divisi' => $targetDiv];
-        if (str_contains($o, 'LEGAL')) return ['dept' => 'LEGAL', 'divisi' => $targetDiv];
-        if (str_contains($o, 'RESEARCH')) return ['dept' => 'RESEARCH & DEVELOPMENT', 'divisi' => $targetDiv];
+        if (str_contains($o, 'FINANCE') || str_contains($o, 'ACC') || str_contains($o, 'TAX')) return ['dept' => 'FINANCE & ACCOUNTING MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'HC') || str_contains($o, 'HUMAN') || str_contains($o, 'HR')) return ['dept' => 'HUMAN CAPITAL MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'FACILITY')) return ['dept' => 'FACILITY MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'LEGAL')) return ['dept' => 'LEGAL DEPARTMENT', 'divisi' => $targetDiv];
+        if (str_contains($o, 'RESEARCH')) return ['dept' => 'RESEARCH & DEVELOPMENT DEPARTMENT', 'divisi' => $targetDiv];
 
         // Cek GA (Sekarang lebih ketat, hanya jika ada kata GA/General)
-        if (str_contains($o, 'GA') || str_contains($o, 'GENERAL') || str_contains($o, 'AFFAIR')) return ['dept' => 'GENERAL AFFAIR', 'divisi' => $targetDiv];
+        if (str_contains($o, 'GA') || str_contains($o, 'GENERAL') || str_contains($o, 'AFFAIR')) return ['dept' => 'GENERAL AFFAIR MANAGER', 'divisi' => $targetDiv];
 
-        if (str_contains($o, 'IT') || str_contains($o, 'INFO') || str_contains($o, 'SYSTEM')) return ['dept' => 'INFORMATION TECHNOLOGY', 'divisi' => $targetDiv];
-        if (str_contains($o, 'PROCURE') || str_contains($o, 'PURCH')) return ['dept' => 'PROCUREMENT', 'divisi' => $targetDiv];
-        if (str_contains($o, 'MARKET')) return ['dept' => 'MARKETING', 'divisi' => $targetDiv];
-        if (str_contains($o, 'SALES')) return ['dept' => 'SALES', 'divisi' => $targetDiv];
-        if (str_contains($o, 'SALES 2')) return ['dept' => 'SALES 2', 'divisi' => $targetDiv];
-        if (str_contains($o, 'INTERNAL')) return ['dept' => 'INTERNAL CONTROL', 'divisi' => $targetDiv];
-        if (str_contains($n, 'PUTRI YUNITA')) return ['dept' => 'GENERAL AFFAIR', 'divisi' => $targetDiv];
+        if (str_contains($o, 'IT') || str_contains($o, 'INFO') || str_contains($o, 'SYSTEM')) return ['dept' => 'INFORMATION TECHNOLOGY MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'PROCURE') || str_contains($o, 'PURCH')) return ['dept' => 'PROCUREMENT MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'MARKET')) return ['dept' => 'MARKETING MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, '2')) return ['dept' => 'SALES 2 MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'SUPPORT')) return ['dept' => 'SALES SUPPORT MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'SALES')) return ['dept' => 'SALES MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'INTERNAL')) return ['dept' => 'INTERNAL CONTROL MANAGER', 'divisi' => $targetDiv];
+        if (str_contains($o, 'COMMERCIAL')) return ['dept' => 'COMMERCIAL & SUPPLY CHAIN DIRECTOR', 'divisi' => $targetDiv];
+        if (str_contains($n, 'PUTRI YUNITA')) return ['dept' => 'GENERAL AFFAIR MANAGER', 'divisi' => $targetDiv];
 
         return ['dept' => '-', 'divisi' => $targetDiv];
     }
