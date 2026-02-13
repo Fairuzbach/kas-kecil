@@ -33,7 +33,7 @@
                                 </span>
                                 <span class="flex items-center gap-1">
                                     🏢 <span
-                                        class="font-bold text-indigo-700">{{ $request->department->name ?? 'No Dept' }}</span>
+                                        class="font-bold text-indigo-700">{{ $request->department->code ?? 'No Dept' }}</span>
                                 </span>
                             </div>
                             <div class="mt-4 flex gap-2">
@@ -211,32 +211,113 @@
                         actor="{{ $request->user->name }}" date="{{ $request->created_at->format('d M H:i') }}" />
 
                     {{-- 2. SUPERVISOR --}}
-                    @if ($request->type->value === 'pengobatan' && $request->user->supervisor_id)
-                        @php
-                            $spvState = $request->supervisor_approved_at
-                                ? 'done'
-                                : ($request->status->value === 'pending_supervisor'
-                                    ? 'active'
-                                    : 'wait');
-                        @endphp
-                        <x-petty-cash.timeline-item title="Supervisor" :status="$spvState"
-                            actor="{{ $request->approver->name ?? 'Supervisor' }}" approveMethod="approveSupervisor"
-                            rejectMethod="reject" />
+                    @php
+                        // Logic tampil: Jika ada data supervisor di database ATAU ini tipe pengobatan (wajib supervisor)
+                        $hasSupervisor = !empty($request->approver_id) || $request->type->value === 'pengobatan';
+
+                        // Tentukan Status Supervisor
+                        if ($request->supervisor_approved_at) {
+                            $spvState = 'done';
+                        } elseif ($request->status->value === 'pending_supervisor') {
+                            $spvState = 'active';
+                        } else {
+                            $spvState = 'wait';
+                        }
+
+                        // AMBIL NAMA SUPERVISOR YANG BENAR
+                        $spvName = 'Menunggu Supervisor'; // Default
+
+                        if ($request->approver) {
+                            // Jika sudah dipilih/assigned, ambil nama dari relasi
+                            $spvName = $request->approver->name;
+                        } elseif ($request->type->value === 'pengobatan') {
+                            // Jika belum assigned tapi tipe pengobatan, bisa cari supervisor user ini (opsional)
+                            // $spvName = $request->user->supervisor->name ?? 'Supervisor User';
+                            // Atau biarkan default
+                        }
+
+                        // Hak Akses Tombol
+                        $isSpvTask = $spvState === 'active' && auth()->id() == $request->approver_id;
+                    @endphp
+
+                    @if ($hasSupervisor)
+                        <x-petty-cash.timeline-item title="Supervisor" :status="$spvState" actor="{{ $spvName }}"
+                            :date="$request->supervisor_approved_at
+                                ? $request->supervisor_approved_at->format('d M H:i')
+                                : null" :approveMethod="$isSpvTask ? 'approveSupervisor' : null" :rejectMethod="$isSpvTask ? 'reject' : null" />
                     @endif
 
                     {{-- 3. MANAGER --}}
                     @php
-                        $mgrState = $request->manager_approved_at
-                            ? 'done'
-                            : ($request->status->value === 'pending_manager'
-                                ? 'active'
-                                : 'wait');
-                        $canMgrApprove = $mgrState === 'active' && auth()->user()->role === 'manager';
-                    @endphp
-                    <x-petty-cash.timeline-item title="Manager Dept" :status="$mgrState" :approveMethod="$canMgrApprove ? 'approveManager' : null"
-                        :rejectMethod="$canMgrApprove ? 'reject' : null" />
+                        // Tentukan Status Manager
+                        if ($request->manager_approved_at) {
+                            $mgrState = 'done';
+                        } elseif ($request->status->value === 'pending_manager') {
+                            $mgrState = 'active';
+                        } else {
+                            $mgrState = 'wait';
+                        }
 
-                    {{-- 4. FINANCE --}}
+                        // AMBIL NAMA MANAGER (LOGIC BARU)
+                        // 1. Cek relasi department -> manager -> name
+                        if ($request->department && $request->department->manager) {
+                            $mgrName = $request->department->manager->name;
+                        } else {
+                            $mgrName = 'Manager (Belum di-set)';
+                        }
+
+                        // Hak Akses Tombol
+                        // User bisa approve JIKA status active DAN dia adalah manager departemen ini
+                        $isMgrTask =
+                            $mgrState === 'active' &&
+                            auth()->user()->role === 'manager' &&
+                            auth()->id() == $request->department->manager_id;
+                    @endphp
+
+                    <x-petty-cash.timeline-item title="Manager Dept" :status="$mgrState" actor="{{ $mgrName }}"
+                        :date="$request->manager_approved_at
+                            ? $request->manager_approved_at->format('d M H:i')
+                            : null" :approveMethod="$isMgrTask ? 'approveManager' : null" :rejectMethod="$isMgrTask ? 'reject' : null" />
+
+                    {{-- 4. DIRECTOR --}}
+                    @php
+                        // 1. Tentukan Status
+                        if ($request->director_approved_at) {
+                            $dirState = 'done';
+                        } elseif ($request->status->value === 'pending_director') {
+                            $dirState = 'active';
+                        } else {
+                            $dirState = 'wait';
+                        }
+
+                        // 2. AMBIL NAMA DIRECTOR YANG SESUAI GROUP
+                        // Ambil group dari departemen tiket ini (misal: 'HO', 'PLANT', dll)
+                        $targetGroup = $request->department->director_group ?? null;
+
+                        // Cari User Director yang memegang group tersebut
+                        $directorUser = \App\Models\User::query()
+                            ->where('role', 'director')
+                            ->where('director_group', $targetGroup)
+                            ->first();
+
+                        // Fallback: Jika tidak ketemu, tampilkan default
+                        $dirName = $directorUser
+                            ? $directorUser->name
+                            : 'Director (Group: ' . ($targetGroup ?? '-') . ')';
+
+                        // 3. Hak Akses Tombol
+                        // User bisa klik jika: Status Active DAN Role Director DAN Group-nya Cocok
+                        $isDirTask =
+                            $dirState === 'active' &&
+                            auth()->user()->role === 'director' &&
+                            auth()->user()->director_group === $targetGroup;
+                    @endphp
+
+                    <x-petty-cash.timeline-item title="Director Approval" :status="$dirState" actor="{{ $dirName }}"
+                        :date="$request->director_approved_at
+                            ? $request->director_approved_at->format('d M H:i')
+                            : null" :approveMethod="$isDirTask ? 'approveDirector' : null" :rejectMethod="$isDirTask ? 'reject' : null" />
+                    {{-- 5. FINANCE --}}
                     @php
                         $finState =
                             $request->status->value === 'paid'
