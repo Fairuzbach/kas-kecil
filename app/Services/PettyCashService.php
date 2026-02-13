@@ -32,6 +32,7 @@ class PettyCashService
                 'description'      => $data['description'] ?? null,
                 'amount'           => $totalAmount,
                 'status'           => $data['status'],
+                'approver_id'       => $data['approver_id'] ?? null,
                 'attachment'       => $data['attachment'] ?? null,
                 'extra_attachment' => $data['extra_attachment'] ?? null,
             ]);
