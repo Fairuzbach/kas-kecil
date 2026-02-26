@@ -60,7 +60,7 @@
                             {{-- Judul & User --}}
                             <td class="px-6 py-4">
                                 <div
-                                    class="font-bold text-gray-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                                    class="uppercase font-bold text-gray-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">
                                     {{ $req->title }}
                                 </div>
                                 <div class="flex items-center gap-1 mt-1">
@@ -102,11 +102,26 @@
                                         'rejected' => 'red',
                                     ];
                                     $color = $colors[$req->status->value] ?? 'gray';
+
+                                    // Cek apakah statusnya rejected untuk logic tooltip
+                                    $isRejected = $req->status->value === 'rejected';
                                 @endphp
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-{{ $color }}-50 text-{{ $color }}-700 border border-{{ $color }}-200 whitespace-nowrap">
+
+                                <span {{-- Jika rejected, tambahkan tooltip alasan --}}
+                                    @if ($isRejected) title="Alasan Penolakan: {{ $req->rejection_note ?? 'Tidak ada catatan' }}" @endif
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-{{ $color }}-50 text-{{ $color }}-700 border border-{{ $color }}-200 whitespace-nowrap {{ $isRejected ? 'cursor-help hover:bg-red-100' : '' }}">
+
                                     <span class="w-1.5 h-1.5 rounded-full bg-{{ $color }}-500 mr-1.5"></span>
                                     {{ $req->status->label() }}
+
+                                    {{-- Opsional: Tambahkan ikon info kecil jika rejected --}}
+                                    @if ($isRejected)
+                                        <svg class="w-3 h-3 ml-1 text-red-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    @endif
                                 </span>
                             </td>
 
