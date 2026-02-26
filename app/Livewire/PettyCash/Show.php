@@ -5,15 +5,36 @@ namespace App\Livewire\PettyCash;
 use Livewire\Component;
 use App\Models\PettyCashRequest;
 use App\Enums\PettyCashStatus;
-
+use Illuminate\Support\Facades\Auth;
 
 class Show extends Component
 {
     public PettyCashRequest $request;
+    public $showRejectModal = false;
+    public $rejectionReason = '';
 
     public function mount(PettyCashRequest $pettyCashRequest)
     {
         $this->request = $pettyCashRequest->load(['details.coa', 'user', 'department']);
+    }
+
+    public function updateCoa($detailId, $newCoaId)
+    {
+        if (!in_array(auth()->user()->role, ['cashier', 'finance'])) {
+            abort(403, 'Akses ditolak. Hanya Cashier atau Finance yang dapat mengubah COA.');
+        }
+
+        $detail = \App\Models\PettyCashDetail::find($detailId);
+        if ($detail) {
+            $detail->update(['coa_id' => $newCoaId]);
+
+            $this->request->refresh();
+            $this->dispatch('swal', [
+                'title' => 'Berhasil!',
+                'text'  => 'COA berhasil diperbarui.',
+                'icon'  => 'success'
+            ]);
+        }
     }
 
     public function approveSupervisor()
@@ -150,8 +171,39 @@ class Show extends Component
             'icon'  => 'success'
         ]);
     }
+
+    public function confirmReject()
+    {
+        $this->showRejectModal = true;
+    }
+    public function reject()
+    {
+        $this->validate([
+            'rejectionReason' => 'required|string|min:5',
+        ]);
+
+        // CARA MANUAL (MENGHINDARI ISU FILLABLE)
+        $this->request->status = \App\Enums\PettyCashStatus::REJECTED;
+        $this->request->rejected_by = auth()->id();
+        $this->request->rejection_note = $this->rejectionReason;
+
+        // Simpan perubahan
+        $this->request->save();
+
+        $this->showRejectModal = false;
+        $this->rejectionReason = '';
+
+        session()->flash('success', 'Pengajuan berhasil ditolak.');
+    }
     public function render()
     {
-        return view('livewire.petty-cash.show');
+        $departmentCoas = \App\Models\Coa::select('coas.*')
+            ->join('coa_department', 'coas.id', '=', 'coa_department.coa_id')
+            ->where('coa_department.department_id', $this->request->department_id)
+            ->orderBy('coas.code', 'asc')
+            ->get();
+        return view('livewire.petty-cash.show', [
+            'departmentCoas' => $departmentCoas
+        ]);
     }
 }

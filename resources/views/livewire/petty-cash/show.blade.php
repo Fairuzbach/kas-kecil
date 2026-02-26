@@ -1,345 +1,366 @@
-<div x-data="{
-    showModal: false,
-    modalUrl: '',
-    modalType: '',
-    openPreview(url, type) {
-        this.modalUrl = url;
-        this.modalType = type;
-        this.showModal = true;
-    }
-}">
-    <div class="max-w-6xl mx-auto py-8">
+{{-- ROOT ELEMENT (Wajib 1 tag terluar untuk Livewire) --}}
+<div>
+    <div x-data="{
+        showModal: false,
+        modalUrl: '',
+        modalType: '',
+        openPreview(url, type) {
+            this.modalUrl = url;
+            this.modalType = type;
+            this.showModal = true;
+        }
+    }" class="max-w-5xl mx-auto py-8 px-4 sm:px-6">
 
-        {{-- GRID UTAMA (Membagi Halaman Jadi 2 Kolom: Kiri 2/3, Kanan 1/3) --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {{-- KERTAS BUKTI PENGELUARAN KAS --}}
+        <div class="w-full bg-white p-8 sm:p-12 shadow-2xl relative border border-gray-100 overflow-hidden">
 
-            {{-- ==================================================== --}}
-            {{-- KOLOM KIRI: HEADER, RINCIAN, & LAMPIRAN --}}
-            {{-- ==================================================== --}}
-            <div class="lg:col-span-2 space-y-6">
-
-                {{-- A. HEADER SECTION --}}
-                <div class="bg-white shadow-sm sm:rounded-lg p-6 border-l-4 border-indigo-500">
-                    <div class="flex flex-col md:flex-row justify-between items-start gap-4">
-                        <div>
-                            <h1 class="text-2xl font-bold text-gray-900">{{ $request->title }}</h1>
-                            <div class="text-sm text-gray-500 mt-2 flex flex-wrap gap-x-6 gap-y-2">
-                                <span class="flex items-center gap-1">
-                                    🏷️ <span
-                                        class="font-mono font-bold text-gray-700 tracking-wide">{{ $request->tracking_number }}</span>
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    👤 <span class="font-semibold">{{ $request->user->name }}</span>
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    🏢 <span
-                                        class="font-bold text-indigo-700">{{ $request->department->code ?? 'No Dept' }}</span>
-                                </span>
-                            </div>
-                            <div class="mt-4 flex gap-2">
-                                <span
-                                    class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                    Jenis: {{ $request->type->label() }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="text-right">
-                            <span
-                                class="px-4 py-2 rounded-lg text-sm font-bold bg-gray-100 border border-gray-200 block md:inline-block text-center">
-                                {{ $request->status->label() }}
-                            </span>
-                            <p class="text-xs text-gray-400 mt-2">Diajukan:
-                                {{ $request->created_at->format('d M Y, H:i') }}</p>
-                        </div>
-                    </div>
+            {{-- Header Nota --}}
+            <div class="flex flex-col sm:flex-row justify-between items-start mb-6">
+                <div class="font-bold italic text-lg sm:text-xl tracking-wide uppercase">
+                    PT. JEMBO CABLE COMPANY Tbk,
                 </div>
 
-                {{-- B. TABEL RINCIAN --}}
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
-                        📄 Rincian Pengajuan
-                    </h3>
+                <table class="border-collapse border border-black text-sm mt-4 sm:mt-0">
+                    <tr>
+                        <td class="border border-black px-4 py-2 font-bold bg-gray-50 w-28">Tanggal</td>
+                        <td class="border border-black px-3 py-2 w-56 font-medium">
+                            {{ $request->created_at->format('d-m-Y') }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-black px-4 py-2 font-bold bg-gray-50">Ref No.</td>
+                        <td class="border border-black px-3 py-2 font-mono text-gray-700">
+                            {{ $request->tracking_number }}
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm text-left">
-                            <thead class="text-xs text-gray-500 uppercase bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3">Deskripsi Item</th>
-                                    <th class="px-4 py-3">COA / Akun</th>
-                                    <th class="px-4 py-3 text-right">Nominal</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                @foreach ($request->details as $item)
-                                    <tr>
-                                        <td class="px-4 py-3 font-medium text-gray-900">{{ $item->item_name }}</td>
-                                        <td class="px-4 py-3 text-gray-500">
-                                            @if ($item->coa)
-                                                <div class="flex flex-col">
-                                                    <span
-                                                        class="font-bold text-xs text-gray-700">{{ $item->coa->code }}</span>
-                                                    <span
-                                                        class="text-[10px] text-gray-400">{{ Str::limit($item->coa->name, 20) }}</span>
-                                                </div>
-                                            @else
-                                                <span
-                                                    class="text-xs text-gray-400 italic bg-gray-100 px-2 py-0.5 rounded">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-3 text-right font-mono text-gray-700">
-                                            Rp {{ number_format($item->amount, 0, ',', '.') }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                            <tfoot class="bg-gray-50 font-bold text-gray-900">
-                                <tr>
-                                    <td colspan="2" class="px-4 py-3 text-right">Total:</td>
-                                    <td class="px-4 py-3 text-right text-indigo-600 text-base">
-                                        Rp {{ number_format($request->amount, 0, ',', '.') }}
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+            <h2
+                class="text-center font-bold text-xl sm:text-3xl mt-10 mb-8 uppercase tracking-wider underline decoration-2 underline-offset-8">
+                Bukti Pengeluaran Kas
+            </h2>
 
-                    @if ($request->description)
-                        <div class="mt-4 bg-yellow-50 p-3 rounded border border-yellow-100 text-sm text-yellow-800">
-                            <strong>Catatan:</strong> {{ $request->description }}
-                        </div>
-                    @endif
-                </div>
+            <div class="mb-6 text-base font-bold flex items-end gap-2 border-b-2 border-black border-dashed pb-1">
+                <span class="whitespace-nowrap uppercase">DIBAYAR KEPADA :</span>
+                <span class="flex-1 text-blue-800 italic text-xl px-2 uppercase">
+                    {{ $request->title }}
+                </span>
+            </div>
 
-                {{-- C. BUKTI LAMPIRAN --}}
-                @if ($request->attachment || $request->extra_attachment)
-                    <div class="bg-white shadow-sm sm:rounded-lg p-6 mt-6 border border-gray-200">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
-                            📎 Bukti Lampiran
-                        </h3>
+            {{-- TABEL RINCIAN (Style Nota) --}}
+            <div class="w-full">
+                <table class="w-full border-collapse border-2 border-black text-sm mb-6">
+                    <thead>
+                        <tr class="bg-gray-100 font-bold text-center border-b-2 border-black">
+                            <th class="border border-black px-3 py-3 w-12 text-center">NO.</th>
+                            <th class="border border-black px-3 py-3 text-left uppercase">KETERANGAN</th>
+                            <th class="border border-black px-3 py-3 w-48 uppercase">AKUN NO.</th>
+                            <th class="border border-black px-3 py-3 w-24 uppercase">DEPT.</th>
+                            <th class="border border-black px-3 py-3 w-64 uppercase">JUMLAH</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($request->details as $index => $item)
+                            <tr class="border-b border-gray-300">
+                                <td class="border-x border-black px-3 py-3 text-center text-lg font-medium">
+                                    {{ $index + 1 }}.</td>
+                                <td class="uppercase border-x border-black px-3 py-3 text-lg font-medium">
+                                    {{ $item->item_name }}
+                                </td>
+                                <td class="border-x border-black px-3 py-3 text-center font-mono font-bold relative">
+                                    @if (in_array(auth()->user()->role, ['cashier', 'finance']) && !in_array($request->status->value, ['paid', 'rejected']))
+                                        {{-- Searchable Dropdown dengan Alpine.js --}}
+                                        <div x-data="{
+                                            search: '',
+                                            open: false,
+                                            options: [
+                                                @foreach ($departmentCoas as $coa)
+                    { id: {{ $coa->id }}, label: '{{ $coa->code }} - {{ addslashes($coa->name) }}' }, @endforeach
+                                            ],
+                                            get filteredOptions() {
+                                                if (this.search === '') return this.options;
+                                                return this.options.filter(i => i.label.toLowerCase().includes(this.search.toLowerCase()));
+                                            },
+                                            selectOption(id) {
+                                                // Panggil fungsi Livewire untuk menyimpan
+                                                $wire.updateCoa({{ $item->id }}, id);
+                                                this.open = false;
+                                                this.search = '';
+                                            }
+                                        }" class="relative w-full text-left font-sans">
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            @foreach ([
-        'attachment' => $request->type->value === 'pengobatan' ? '📄 Foto Kwitansi' : '📄 Lampiran Utama',
-        'extra_attachment' => '💊 Foto Resep Dokter',
-    ] as $field => $label)
-                                @if ($request->$field)
-                                    @php
-                                        $file = $request->$field;
-                                        $url = asset('storage/' . $file);
-                                        $ext = pathinfo($file, PATHINFO_EXTENSION);
-                                        $isImage = in_array(strtolower($ext), [
-                                            'jpg',
-                                            'jpeg',
-                                            'png',
-                                            'gif',
-                                            'webp',
-                                            'bmp',
-                                        ]);
-                                        $type = $isImage ? 'image' : 'pdf';
-                                    @endphp
+                                            {{-- Tombol Trigger (Terlihat seperti teks biasa/input) --}}
+                                            <button @click="open = !open" type="button"
+                                                class="w-full text-[11px] font-mono border-b-2 border-indigo-300 px-2 py-1.5 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-100 focus:outline-none flex justify-between items-center transition cursor-pointer"
+                                                title="Klik untuk ubah COA">
 
-                                    <div class="border rounded-lg p-4 bg-gray-50 flex flex-col h-full">
-                                        <p
-                                            class="text-sm font-bold mb-3 {{ $field === 'extra_attachment' ? 'text-pink-700' : 'text-indigo-700' }}">
-                                            {{ $label }}
-                                        </p>
+                                                {{-- UBAH BARIS INI: Tambahkan pemanggilan nama COA --}}
+                                                <span class="truncate pr-2">
+                                                    {{ $item->coa ? $item->coa->code . ' - ' . $item->coa->name : '- Pilih COA -' }}
+                                                </span>
 
-                                        <div class="flex-1 flex items-center justify-center bg-gray-200 rounded overflow-hidden relative group cursor-pointer"
-                                            @click="openPreview('{{ $url }}', '{{ $type }}')">
-
-                                            @if ($isImage)
-                                                <img src="{{ $url }}"
-                                                    class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105">
-                                                <div
-                                                    class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition-all duration-300">
-                                                    <span
-                                                        class="opacity-0 group-hover:opacity-100 bg-white text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all">
-                                                        🔍 Perbesar
-                                                    </span>
-                                                </div>
-                                            @else
-                                                <div
-                                                    class="flex flex-col items-center justify-center h-48 w-full group-hover:bg-gray-300 transition text-gray-500">
-                                                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                                        </path>
-                                                    </svg>
-                                                    <span class="text-sm font-semibold uppercase">{{ $ext }}
-                                                        FILE</span>
-                                                    <span class="text-[10px] text-gray-400 mt-1">Klik untuk
-                                                        preview</span>
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        <div class="mt-3 text-center">
-                                            <button @click="openPreview('{{ $url }}', '{{ $type }}')"
-                                                class="inline-flex items-center gap-1 px-4 py-2 bg-white border border-gray-300 rounded-md text-xs font-bold text-gray-700 hover:bg-gray-100 shadow-sm w-full justify-center transition">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
+                                                <svg class="w-3 h-3 opacity-50 flex-shrink-0" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
-                                                    </path>
+                                                        stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                                 </svg>
-                                                Lihat Detail
                                             </button>
+
+                                            {{-- Pop-up Kotak Pencarian --}}
+                                            <div x-show="open" @click.away="open = false" style="display: none;"
+                                                class="absolute z-50 w-64 mt-1 bg-white border border-gray-300 rounded shadow-xl left-1/2 transform -translate-x-1/2 text-left">
+                                                <div class="p-2 border-b border-gray-200 bg-gray-50">
+                                                    <input type="text" x-model="search"
+                                                        placeholder="Ketik nama atau kode COA..."
+                                                        class="w-full text-xs border-gray-300 rounded px-2 py-1.5 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                                                </div>
+                                                <ul class="max-h-48 overflow-y-auto text-xs font-mono">
+                                                    <template x-for="option in filteredOptions" :key="option.id">
+                                                        <li @click="selectOption(option.id)"
+                                                            class="px-3 py-2 cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 border-b border-gray-100 last:border-0"
+                                                            x-text="option.label"></li>
+                                                    </template>
+                                                    <li x-show="filteredOptions.length === 0"
+                                                        class="px-3 py-3 text-gray-500 text-center italic">COA tidak
+                                                        ditemukan</li>
+                                                </ul>
+                                            </div>
                                         </div>
+
+                                        {{-- Indikator Loading --}}
+                                        <div wire:loading wire:target="updateCoa({{ $item->id }})"
+                                            class="text-[9px] text-indigo-600 mt-1 animate-pulse italic">
+                                            Menyimpan...
+                                        </div>
+                                    @else
+                                        {{-- Tampilan Teks Statis untuk Role Lain --}}
+                                        <span class="text-[11px]">
+                                            {{ $item->coa ? $item->coa->code . ' - ' . $item->coa->name : '-' }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="border-x border-black px-3 py-3 text-center font-bold text-gray-600">
+                                    {{ $request->department->code ?? 'GA' }}
+                                </td>
+                                <td class="border-x border-black px-3 py-3">
+                                    <div class="flex justify-between items-center text-lg font-bold">
+                                        <span>Rp.</span>
+                                        <span class="{{ $item->amount < 0 ? 'text-red-600' : '' }}">
+                                            {{ number_format($item->amount, 0, ',', '.') }}
+                                        </span>
                                     </div>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                        {{-- Spacer Row (Untuk menjaga estetik nota jika item sedikit) --}}
+                        @for ($i = 0; $i < 2; $i++)
+                            <tr class="h-8">
+                                <td class="border-x border-black"></td>
+                                <td class="border-x border-black"></td>
+                                <td class="border-x border-black"></td>
+                                <td class="border-x border-black"></td>
+                                <td class="border-x border-black"></td>
+                            </tr>
+                        @endfor
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-100 border-t-2 border-black">
+                            <td colspan="4"
+                                class="border border-black px-4 py-3 text-right font-bold tracking-widest text-xl uppercase">
+                                Total</td>
+                            <td class="border border-black px-3 py-3 font-bold bg-gray-200 text-xl">
+                                <div class="flex justify-between items-center w-full">
+                                    <span>Rp.</span>
+                                    <span>{{ number_format($request->amount, 0, ',', '.') }}.-</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
 
-            {{-- ==================================================== --}}
-            {{-- KOLOM KANAN: TIMELINE STATUS --}}
-            {{-- ==================================================== --}}
-            <div class="bg-white rounded-xl shadow-lg p-5 sticky top-4 h-fit">
-                <h3 class="text-xl font-bold mb-6 text-gray-800">Status Persetujuan</h3>
-
-                <div class="relative pl-2">
-                    {{-- 1. CREATED --}}
-                    <x-petty-cash.timeline-item title="Pengajuan Dibuat" status="done"
-                        actor="{{ $request->user->name }}" date="{{ $request->created_at->format('d M H:i') }}" />
-
-                    {{-- 2. SUPERVISOR --}}
-                    @php
-                        // Logic tampil: Jika ada data supervisor di database ATAU ini tipe pengobatan (wajib supervisor)
-                        $hasSupervisor = !empty($request->approver_id) || $request->type->value === 'pengobatan';
-
-                        // Tentukan Status Supervisor
-                        if ($request->supervisor_approved_at) {
-                            $spvState = 'done';
-                        } elseif ($request->status->value === 'pending_supervisor') {
-                            $spvState = 'active';
-                        } else {
-                            $spvState = 'wait';
-                        }
-
-                        // AMBIL NAMA SUPERVISOR YANG BENAR
-                        $spvName = 'Menunggu Supervisor'; // Default
-
-                        if ($request->approver) {
-                            // Jika sudah dipilih/assigned, ambil nama dari relasi
-                            $spvName = $request->approver->name;
-                        } elseif ($request->type->value === 'pengobatan') {
-                            // Jika belum assigned tapi tipe pengobatan, bisa cari supervisor user ini (opsional)
-                            // $spvName = $request->user->supervisor->name ?? 'Supervisor User';
-                            // Atau biarkan default
-                        }
-
-                        // Hak Akses Tombol
-                        $isSpvTask = $spvState === 'active' && auth()->id() == $request->approver_id;
-                    @endphp
-
-                    @if ($hasSupervisor)
-                        <x-petty-cash.timeline-item title="Supervisor" :status="$spvState" actor="{{ $spvName }}"
-                            :date="$request->supervisor_approved_at
-                                ? $request->supervisor_approved_at->format('d M H:i')
-                                : null" :approveMethod="$isSpvTask ? 'approveSupervisor' : null" :rejectMethod="$isSpvTask ? 'reject' : null" />
-                    @endif
-
-                    {{-- 3. MANAGER --}}
-                    @php
-                        // Tentukan Status Manager
-                        if ($request->manager_approved_at) {
-                            $mgrState = 'done';
-                        } elseif ($request->status->value === 'pending_manager') {
-                            $mgrState = 'active';
-                        } else {
-                            $mgrState = 'wait';
-                        }
-
-                        // AMBIL NAMA MANAGER (LOGIC BARU)
-                        // 1. Cek relasi department -> manager -> name
-                        if ($request->department && $request->department->manager) {
-                            $mgrName = $request->department->manager->name;
-                        } else {
-                            $mgrName = 'Manager (Belum di-set)';
-                        }
-
-                        // Hak Akses Tombol
-                        // User bisa approve JIKA status active DAN dia adalah manager departemen ini
-                        $isMgrTask =
-                            $mgrState === 'active' &&
-                            auth()->user()->role === 'manager' &&
-                            auth()->id() == $request->department->manager_id;
-                    @endphp
-
-                    <x-petty-cash.timeline-item title="Manager Dept" :status="$mgrState" actor="{{ $mgrName }}"
-                        :date="$request->manager_approved_at
-                            ? $request->manager_approved_at->format('d M H:i')
-                            : null" :approveMethod="$isMgrTask ? 'approveManager' : null" :rejectMethod="$isMgrTask ? 'reject' : null" />
-
-                    {{-- 4. DIRECTOR --}}
-                    @php
-                        // 1. Tentukan Status
-                        if ($request->director_approved_at) {
-                            $dirState = 'done';
-                        } elseif ($request->status->value === 'pending_director') {
-                            $dirState = 'active';
-                        } else {
-                            $dirState = 'wait';
-                        }
-
-                        // 2. AMBIL NAMA DIRECTOR YANG SESUAI GROUP
-                        // Ambil group dari departemen tiket ini (misal: 'HO', 'PLANT', dll)
-                        $targetGroup = $request->department->director_group ?? null;
-
-                        // Cari User Director yang memegang group tersebut
-                        $directorUser = \App\Models\User::query()
-                            ->where('role', 'director')
-                            ->where('director_group', $targetGroup)
-                            ->first();
-
-                        // Fallback: Jika tidak ketemu, tampilkan default
-                        $dirName = $directorUser
-                            ? $directorUser->name
-                            : 'Director (Group: ' . ($targetGroup ?? '-') . ')';
-
-                        // 3. Hak Akses Tombol
-                        // User bisa klik jika: Status Active DAN Role Director DAN Group-nya Cocok
-                        $isDirTask =
-                            $dirState === 'active' &&
-                            auth()->user()->role === 'director' &&
-                            auth()->user()->director_group === $targetGroup;
-                    @endphp
-
-                    <x-petty-cash.timeline-item title="Director Approval" :status="$dirState" actor="{{ $dirName }}"
-                        :date="$request->director_approved_at
-                            ? $request->director_approved_at->format('d M H:i')
-                            : null" :approveMethod="$isDirTask ? 'approveDirector' : null" :rejectMethod="$isDirTask ? 'reject' : null" />
-                    {{-- 5. FINANCE --}}
-                    @php
-                        $finState =
-                            $request->status->value === 'paid'
-                                ? 'done'
-                                : ($request->status->value === 'pending_finance'
-                                    ? 'active'
-                                    : 'wait');
-                    @endphp
-                    <x-petty-cash.timeline-item title="Finance" :status="$finState" :isLast="true">
-                        @if ($finState === 'active' && auth()->user()->role === 'finance')
-                            <button wire:click="approveFinance" wire:confirm="Yakin ingin mencairkan dana?"
-                                class="w-full mt-2 bg-emerald-500 text-white text-xs py-2 rounded hover:bg-emerald-600 transition shadow-sm font-bold flex items-center justify-center gap-2">
-                                💰 Cairkan Dana
-                            </button>
-                        @endif
-                    </x-petty-cash.timeline-item>
+            <div class="mb-12 text-base flex gap-2 items-start">
+                <span class="font-bold whitespace-nowrap pt-1 uppercase">Terbilang :</span>
+                <div
+                    class="flex-1 min-h-[2.5rem] border-b-2 border-black border-dashed px-3 py-1 text-blue-800 font-medium capitalize leading-relaxed text-lg italic">
+                    {{ $request->terbilang ?? '-' }} Rupiah
                 </div>
             </div>
 
-        </div> {{-- End Grid Utama --}}
-    </div>
+            {{-- LOGIKA TOMBOL APPROVAL --}}
+            @php
+                $isApprover = false;
+                $method = '';
 
-    {{-- PANGGIL MODAL PREVIEW --}}
-    <x-petty-cash.modal-preview />
+                if ($request->status->value === 'pending_supervisor' && auth()->id() == $request->approver_id) {
+                    $isApprover = true;
+                    $method = 'approveSupervisor';
+                } elseif (
+                    $request->status->value === 'pending_manager' &&
+                    auth()->id() == $request->department->manager_id
+                ) {
+                    $isApprover = true;
+                    $method = 'approveManager';
+                } elseif (
+                    $request->status->value === 'pending_director' &&
+                    auth()->user()->role === 'director' &&
+                    auth()->user()->director_group === $request->department->director_group
+                ) {
+                    $isApprover = true;
+                    $method = 'approveDirector';
+                } elseif ($request->status->value === 'pending_finance' && auth()->user()->role === 'finance') {
+                    $isApprover = true;
+                    $method = 'approveFinance';
+                }
+            @endphp
+
+            @if ($isApprover)
+                <div
+                    class="mt-8 mb-4 p-5 bg-indigo-50 rounded-xl border-2 border-dashed border-indigo-200 print:hidden">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h4 class="text-indigo-900 font-bold uppercase tracking-tight">Konfirmasi Persetujuan</h4>
+                            <p class="text-xs text-indigo-600">Silakan periksa kembali rincian di atas sebelum
+                                menyetujui.</p>
+                        </div>
+                        <div class="flex gap-3 w-full sm:w-auto">
+                            <button wire:click="confirmReject"
+                                class="flex-1 sm:flex-none px-6 py-2.5 bg-white border-2 border-red-500 text-red-600 font-bold rounded-lg hover:bg-red-50 transition shadow-sm active:scale-95">
+                                Tolak
+                            </button>
+                            <button wire:click="{{ $method }}" wire:loading.attr="disabled"
+                                class="flex-1 sm:flex-none px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                                <span wire:loading.remove wire:target="{{ $method }}"
+                                    class="flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    {{ $request->status->value === 'pending_finance' ? 'Cairkan Dana' : 'Setujui' }}
+                                </span>
+                                <span wire:loading wire:target="{{ $method }}">Memproses...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Kolom Tanda Tangan --}}
+            @php
+
+                $mgrUser = $request->department->manager;
+                $mgrName = $mgrUser->name ?? 'Manager';
+                $mgrEmployee = $mgrUser ? \App\Models\Employee::where('nik', $mgrUser->nik)->first() : null;
+                $mgrTitle = $mgrEmployee->job_title ?? 'GAM';
+
+                $dirGroup = $request->department->director_group ?? null;
+                $dirName = $dirUser->name ?? 'Director';
+                $dirUser = \App\Models\User::where('role', 'director')->where('director_group', $dirGroup)->first();
+                $dirEmployee = $dirUser ? \App\Models\Employee::where('nik', $dirUser->nik)->first() : null;
+                $dirTitle = $dirEmployee->job_title ?? 'Director';
+            @endphp
+            {{-- <div class="p-4 bg-yellow-100 text-xs font-mono mb-4 print:hidden">
+                <strong>Data Manager:</strong>
+                @dump($request->department->manager->job_title?->toArray())
+            </div> --}}
+            <div class="grid grid-cols-5 gap-2 text-center text-xs font-bold mt-16 mb-8 uppercase">
+                <div class="flex flex-col justify-between h-32 border border-black p-1">
+                    <p>Disetujui Oleh,</p>
+                    <div class="mt-auto">
+                        <p class="text-[10px] font-bold">{{ $request->director_approved_at ? $dirName : '' }}</p>
+                        <div class="border-b border-black border-dashed mx-2 mb-1"></div>
+                        <p class="text-[9px] font-normal">{{ $dirTitle }}</p>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-between h-32 border border-black border-l-0 p-1">
+                    <p>Diperiksa Oleh,</p>
+                    <div class="mt-auto">
+                        <p class="text-[10px] font-bold">{{ $request->manager_approved_at ? $mgrName : '' }}</p>
+                        <div class="border-b border-black border-dashed mx-2 mb-1"></div>
+                        <p class="text-[9px] font-normal">{{ $mgrTitle }}</p>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-between h-32 border border-black border-l-0 p-1">
+                    <p>Dibayar Oleh,</p>
+                    <div class="mt-auto">
+                        <p class="text-[10px] font-bold">
+                            {{ $request->status->value === 'paid' ? 'Finance Team' : '' }}
+                        </p>
+                        <div class="border-b border-black border-dashed mx-2 mb-1"></div>
+                        <p class="text-[9px] font-normal">Finance</p>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-between h-32 border border-black border-l-0 p-1">
+                    <p>Diajukan Oleh,</p>
+                    <div class="mt-auto">
+                        <p class="text-[10px] font-bold">{{ $request->user->name }}</p>
+                        <div class="border-b border-black border-dashed mx-2 mb-1"></div>
+                        <p class="text-[9px] font-normal">Pemohon</p>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-between h-32 border border-black border-l-0 p-1">
+                    <p>Diterima Oleh,</p>
+                    <div class="mt-auto">
+                        <p class="text-[10px] font-bold">
+                            {{ $request->status->value === 'paid' ? $request->title : '' }}</p>
+                        <div class="border-b border-black border-dashed mx-2 mb-1"></div>
+                        <p class="text-[9px] font-normal">Penerima Dana</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Notifikasi Rejection (Jika Ada) --}}
+        @if ($request->status->value === 'rejected')
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 mt-6 rounded shadow-sm">
+                <h3 class="text-red-800 font-bold">⚠️ Alasan Penolakan:</h3>
+                <p class="text-red-700 italic">"{{ $request->rejection_note }}"</p>
+            </div>
+        @endif
+
+        {{-- BUKTI LAMPIRAN --}}
+        @if ($request->attachment)
+            <div class="mt-8">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase tracking-widest">
+                    📎 Bukti Lampiran
+                </h3>
+
+                <div class="max-w-xs group cursor-pointer"
+                    @click="openPreview('{{ asset('storage/' . $request->attachment) }}', '{{ in_array(pathinfo($request->attachment, PATHINFO_EXTENSION), ['jpg', 'jpeg', 'png', 'webp']) ? 'image' : 'pdf' }}')">
+                    <div
+                        class="bg-white p-2 shadow-lg border border-gray-200 rounded-sm transform transition hover:-rotate-1">
+                        <div
+                            class="relative overflow-hidden aspect-[4/3] bg-gray-100 flex items-center justify-center">
+                            @if (in_array(pathinfo($request->attachment, PATHINFO_EXTENSION), ['jpg', 'jpeg', 'png', 'webp']))
+                                <img src="{{ asset('storage/' . $request->attachment) }}"
+                                    class="w-full h-full object-cover">
+                            @else
+                                <div class="text-center p-4">
+                                    <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                        </path>
+                                    </svg>
+                                    <span class="text-[10px] font-bold text-gray-500 uppercase">Klik untuk Lihat
+                                        PDF</span>
+                                </div>
+                            @endif
+                            <div
+                                class="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition">
+                                <span
+                                    class="bg-white/90 text-black text-[10px] font-black px-3 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100">PREVIEW</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- MODAL PREVIEW & REJECT --}}
+        <x-petty-cash.modal-preview />
+        <x-petty-cash.modal-reject-and-accept :showRejectModal="$showRejectModal" />
+
+    </div>
 </div>
