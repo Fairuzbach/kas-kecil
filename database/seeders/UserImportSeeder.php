@@ -24,6 +24,8 @@ class UserImportSeeder extends Seeder
                     ->orWhere('level', 'like', '%supervisor%')
                     ->orWhere('level', 'like', '%head%')
                     ->orWhere('job_title', 'like', '%admin%')
+                    ->orWhere('organization', 'like', '%accounting%')
+                    ->orWhere('organization', 'like', '%finance%')
 
                     // Filter Nama Spesifik (Hardcoded)
                     ->orWhere('name', 'like', '%alinda%')
@@ -63,7 +65,7 @@ class UserImportSeeder extends Seeder
                     'Name' => Str::limit($emp->name, 20),
                     'Job' => Str::limit($emp->job_title, 20),
                     'Dept' => Str::limit($emp->department->name ?? '-', 20),
-                    'Assigned Group' => $roleData['director_group'] ?? 'NULL', // <--- INI YG SALAH
+                    'Assigned Group' => $roleData['director_group'] ?? 'NULL',
                     'Role' => $roleData['role']
                 ];
             }
@@ -97,9 +99,6 @@ class UserImportSeeder extends Seeder
         $progressBar->finish();
         $this->command->newLine(2);
 
-        // ==========================================================
-        // LAPORAN DEBUG (Hanya muncul jika ada yang salah)
-        // ==========================================================
         if (count($debugAnomalies) > 0) {
             $this->command->error("⚠️  PERINGATAN: Ditemukan " . count($debugAnomalies) . " orang Operasional/Maintenance yang 'Nyasar' Group:");
             $this->command->table(
@@ -133,7 +132,8 @@ class UserImportSeeder extends Seeder
         if (str_contains($nama, 'alinda')) return ['role' => 'hc', 'director_group' => null];
         if (str_contains($nama, 'nurtasa')) return ['role' => 'klinik', 'director_group' => null];
         if (str_contains($nama, 'tristana')) return ['role' => 'admin', 'director_group' => null];
-        if (str_contains($nama, 'sisilia')) return ['role' => 'finance', 'director_group' => null];
+        if (str_contains($nama, 'teddy')) return ['role' => 'finance', 'director_group' => null];
+        if (str_contains($nama, 'sisilia')) return ['role' => 'admin', 'director_group' => null];
 
         // Director Mapping
         if (str_contains($nama, 'mary')) return ['role' => 'director', 'director_group' => 'presdir'];
@@ -175,7 +175,7 @@ class UserImportSeeder extends Seeder
 
         // --- 6. FINANCE STAFF ---
         if (str_contains($dept, 'finance') || str_contains($dept, 'accounting')) {
-            return ['role' => 'finance', 'director_group' => null];
+            return ['role' => 'admin', 'director_group' => null];
         }
 
         // --- 7. STAFF BIASA ---
