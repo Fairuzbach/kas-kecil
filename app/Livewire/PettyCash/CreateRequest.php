@@ -5,6 +5,7 @@ namespace App\Livewire\PettyCash;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\PettyCashDetail;
+use Illuminate\Support\Number;
 
 class CreateRequest extends Component
 {
@@ -24,6 +25,12 @@ class CreateRequest extends Component
     public $selected_employee_id;
     public $selected_approver_id;
     public $supervisors = [];
+    public $terbilang = '';
+    public $total = 0;
+    public $tanggal;
+    public $tracking_number;
+    public $dibayar_kepada;
+
 
 
 
@@ -41,6 +48,84 @@ class CreateRequest extends Component
     public $items = [
         ['item_name' => '', 'amount' => '', 'coa_id' => '']
     ];
+
+    public function updated($property)
+    {
+        // Mengecek apakah input yang sedang diketik berawalan 'items.'
+        if (str_starts_with($property, 'items.')) {
+            $this->calculateTotal();
+        }
+    }
+
+    public function calculateTotal()
+    {
+        $amount = 0;
+        foreach ($this->items as $item) {
+            $amount += (float) ($item['amount'] ?? 0);
+        }
+        $this->total = $amount;
+
+        if ($this->total == 0) {
+            $this->terbilang = 'Nol Rupiah';
+        } else {
+            $this->terbilang = $this->convertTerbilang(abs($this->total)) . ' Rupiah';
+        }
+    }
+
+    public function addTax($index, $type)
+    {
+        $baseAmount = (int) ($this->items[$index]['amount'] ?? 0);
+
+        if ($baseAmount <= 0) return;
+
+        $taxAmount = 0;
+        $itemName = '';
+        $coaId = '';
+
+        if ($type === 'ppn') {
+            $taxAmount = $baseAmount * 0.11;
+            $itemName = 'PPN 11% (Ref: ' . $this->items[$index]['item_name'] . ')';
+            $coaId = 'tax_ppn';
+        } elseif ($type === 'pph23') {
+            // Hasilnya akan minus, misal: -2000
+            $taxAmount = round($baseAmount * 0.02) * -1;
+            $itemName = 'Potongan PPh 23 2% (Ref: ' . $this->items[$index]['item_name'] . ')';
+            $coaId = 'tax_pph';
+        }
+        $this->items[] = [
+            'item_name' => $itemName,
+            'coa_id' => $coaId,
+            'amount' => $taxAmount
+        ];
+
+        $this->calculateTotal();
+    }
+    private function convertTerbilang($nilai)
+    {
+        $nilai = abs($nilai);
+        $huruf = array("", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas");
+        $temp = "";
+        if ($nilai < 12) {
+            $temp = " " . $huruf[$nilai];
+        } else if ($nilai < 20) {
+            $temp = $this->convertTerbilang($nilai - 10) . " Belas ";
+        } else if ($nilai < 100) {
+            $temp = $this->convertTerbilang($nilai / 10) . " Puluh " . $this->convertTerbilang($nilai % 10);
+        } else if ($nilai < 200) {
+            $temp = " Seratus " . $this->convertTerbilang($nilai - 100);
+        } else if ($nilai < 1000) {
+            $temp = $this->convertTerbilang($nilai / 100) . " Ratus " . $this->convertTerbilang($nilai % 100);
+        } else if ($nilai < 2000) {
+            $temp = " Seribu " . $this->convertTerbilang($nilai - 1000);
+        } else if ($nilai < 1000000) {
+            $temp = $this->convertTerbilang($nilai / 1000) . " Ribu " . $this->convertTerbilang($nilai % 1000);
+        } else if ($nilai < 1000000000) {
+            $temp = $this->convertTerbilang($nilai / 1000000) . " Juta " . $this->convertTerbilang($nilai % 1000000);
+        } else if ($nilai < 1000000000000) {
+            $temp = $this->convertTerbilang($nilai / 1000000000) . " Milyar " . $this->convertTerbilang(fmod($nilai, 1000000000));
+        }
+        return trim($temp);
+    }
 
 
     public function addItem()
@@ -62,16 +147,7 @@ class CreateRequest extends Component
 
     public function save($status = 'pending_manager')
     {
-
-        if ($this->type === 'pengobatan') {
-            $this->dispatch('swal', [
-                'title' => 'Fitur Dinonaktifkan',
-                'text'  => 'Mohon maaf, pengajuan tipe pengobatan sedang dinonaktifkan sementara.',
-                'icon'  => 'warning'
-            ]);
-            return; // Stop disini
-        }
-
+        // 1. Filter baris kosong dulu agar tidak divalidasi
         $this->items = collect($this->items)->filter(function ($item) {
             return trim($item['item_name']) !== '';
         })->values()->all();
@@ -80,86 +156,110 @@ class CreateRequest extends Component
             $this->addError('items', 'Minimal harus ada 1 baris item.');
             return;
         }
-        $coaRule = 'required|exists:coas,id';
-
+        $this->title = $this->dibayar_kepada;
+        // 2. Definisi Rules
         $rules = [
             'title'             => 'required|string|max:255',
             'type'              => 'required',
             'items'             => 'required|array|min:1',
             'items.*.item_name' => 'required|string',
-            'items.*.amount'    => 'required|numeric|min:1000',
-            'items.*.coa_id'    => $coaRule,
-            // Validasi Attachment Umum
+            'items.*.amount' => [
+                'required',
+                'numeric',
+                function ($attribute, $value, $fail) {
+                    $index = explode('.', $attribute)[1];
+                    $coaId = $this->items[$index]['coa_id'] ?? null;
+                    $numericValue = (float) $value;
+
+                    if ($coaId === 'tax_pph') {
+                        // KHUSUS PPh 23: Harus minus dan tidak boleh 0
+                        if ($numericValue >= 0) {
+                            $fail('Nominal PPh 23 harus berupa potongan (angka minus).');
+                        }
+                    } elseif ($coaId === 'tax_ppn') {
+                        // KHUSUS PPN: Harus plus dan tidak boleh 0
+                        if ($numericValue <= 0) {
+                            $fail('Nominal PPN harus lebih dari 0.');
+                        }
+                    } else {
+                        // BARIS BIASA: Minimal 1.000
+                        if ($numericValue < 1000) {
+                            $fail('Minimal pengajuan item adalah Rp 1.000.');
+                        }
+                    }
+                },
+            ],
+            'items.*.coa_id'    => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    if (in_array($value, ['tax_ppn', 'tax_pph'])) return;
+                    if (!\App\Models\Coa::where('id', $value)->exists()) {
+                        $fail('The selected COA is invalid.');
+                    }
+                },
+            ],
             'attachment'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ];
-        //         if ($this->type === 'pengobatan') {
-        //     $rules['attachment_receipt'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:2048';
-        //     $rules['attachment_prescription'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:2048';
-        // }
-        $hasSupervisors = count($this->supervisors ?? []) > 0;
-        if ($hasSupervisors) {
+
+        if (count($this->supervisors ?? []) > 0 && $status !== 'draft') {
             $rules['selected_approver_id'] = 'required';
         }
 
+        // 3. Jalankan Validasi
         $this->validate($rules);
 
-        $mainFile = null;
-        $extraFile = null;
-
-        if ($this->attachment) {
-            $mainFile = $this->attachment->store('attachments', 'public');
+        // 4. Cek Tipe Pengobatan
+        if ($this->type === 'pengobatan') {
+            $this->dispatch('swal', [
+                'title' => 'Fitur Dinonaktifkan',
+                'text'  => 'Mohon maaf, pengajuan tipe pengobatan sedang dinonaktifkan sementara.',
+                'icon'  => 'warning'
+            ]);
+            return;
         }
 
-        // (Opsional) Jika nanti pengobatan aktif lagi, logic extraFile taruh disini
+        // 5. Mapping ID Pajak (Lakukan SETELAH validasi agar data DB aman)
+        $ppnCoa = \App\Models\Coa::where('code', '2101')->first();
+        $pphCoa = \App\Models\Coa::where('code', '2102')->first();
 
-        $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
+        $cleanedItems = collect($this->items)->map(function ($item) use ($ppnCoa, $pphCoa) {
+            $finalCoaId = $item['coa_id'];
+            if ($finalCoaId === 'tax_ppn') $finalCoaId = $ppnCoa->id ?? null;
+            if ($finalCoaId === 'tax_pph') $finalCoaId = $pphCoa->id ?? null;
 
-        if ($status === 'draft') {
-            $statusEnum = \App\Enums\PettyCashStatus::DRAFT;
-        } else {
-            if (!empty($this->selected_approver_id)) {
-                $statusEnum = \App\Enums\PettyCashStatus::PENDING_SUPERVISOR;
-            } else {
-                $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
-            }
-        }
-
-        $cleanedItems = collect($this->items)->map(function ($item) {
             return [
                 'item_name' => $item['item_name'],
                 'amount'    => $item['amount'],
-                'coa_id'    => $item['coa_id'] ?? null,
+                'coa_id'    => $finalCoaId,
             ];
         })->toArray();
 
+        // 6. Handle File
+        $mainFile = $this->attachment ? $this->attachment->store('attachments', 'public') : null;
+
+        // 7. Penentuan Status
+        $statusEnum = \App\Enums\PettyCashStatus::PENDING_MANAGER;
+        if ($status === 'draft') {
+            $statusEnum = \App\Enums\PettyCashStatus::DRAFT;
+        } else {
+            $statusEnum = !empty($this->selected_approver_id)
+                ? \App\Enums\PettyCashStatus::PENDING_SUPERVISOR
+                : \App\Enums\PettyCashStatus::PENDING_MANAGER;
+        }
+
+        // 8. Simpan via Service
         app(\App\Services\PettyCashService::class)->createRequest([
             'title'            => $this->title,
             'type'             => $this->type,
             'description'      => $this->description,
             'attachment'       => $mainFile,
-            'extra_attachment' => $extraFile,
             'items'            => $cleanedItems,
             'approver_id'      => $this->selected_approver_id,
             'status'           => $statusEnum,
         ], auth()->user());
 
-        $this->reset([
-            'title',
-            'type',
-            'description',
-            'attachment',
-            'selected_approver_id',
-            'items'
-        ]);
-
-        $this->items = [['item_name' => '', 'amount' => '', 'coa_id' => '']];
-
-        $msg = ($status === 'draft') ? 'Disimpan sebagai Draft.' : 'Pengajuan berhasil dibuat!';
-
-        session()->flash('success', $msg);
-        $this->dispatch('request-created');
-
-
+        // 9. Reset & Redirect
+        session()->flash('success', ($status === 'draft') ? 'Disimpan sebagai Draft.' : 'Pengajuan berhasil dibuat!');
         return redirect()->route('dashboard');
     }
     public function details()
@@ -170,7 +270,7 @@ class CreateRequest extends Component
     public function render()
     {
         $user = auth()->user();
-
+        $this->calculateTotal();
         $filteredCoas = \App\Models\Coa::query()
             ->whereHas('departments', function ($query) use ($user) {
                 $query->where('departments.id', $user->department_id);
