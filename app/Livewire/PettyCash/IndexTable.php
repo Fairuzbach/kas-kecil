@@ -12,8 +12,19 @@ class IndexTable extends Component
 {
     use WithPagination;
 
+    public $search = '';
+    public $filterDept = 'all';
+    public $filterStatus = 'all';
 
-    #[On('request-created')]
+    #[On('filter-updated')]
+    public function updateFilters($data)
+    {
+
+        $this->search = $data['search'];
+        $this->filterDept = $data['filterDept'];
+        $this->filterStatus = $data['filterStatus'];
+        $this->resetPage();
+    }
     public function refreshTable()
     {
         $this->resetPage();
@@ -96,6 +107,22 @@ class IndexTable extends Component
         } else {
             // Role User Biasa
             $query->where('user_id', $user->id);
+        }
+
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('tracking_number', 'like', '%' . $this->search . '%')
+                    ->orWhere('title', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('user', function ($u) {
+                        $u->where('name', 'like', '%' . $this->search . '%');
+                    });
+            });
+        }
+        if ($this->filterDept !== 'all') {
+            $query->where('department_id', $this->filterDept);
+        }
+        if ($this->filterStatus !== 'all') {
+            $query->where('status', $this->filterStatus);
         }
 
         $requests = $query->latest()->paginate(10);
