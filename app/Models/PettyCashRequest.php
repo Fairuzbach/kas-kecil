@@ -31,8 +31,8 @@ class PettyCashRequest extends Model
         'director_approver_id',
         'hc_approved_at',
         'klinik_approved_at',
-        'rejected_at',
-        'rejected_reason',
+        'rejected_by',
+        'rejected_note',
     ];
 
     protected $casts = [
@@ -82,5 +82,43 @@ class PettyCashRequest extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approver_id');
+    }
+
+    public function rejectedBy()
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function getTerbilangAttribute()
+    {
+        if ($this->amount == 0) return "Nol Rupiah";
+        return trim($this->logikaTerbilang($this->amount)) . " Rupiah";
+    }
+
+    private function logikaTerbilang($nilai)
+    {
+        $nilai = abs($nilai);
+        $huruf = array("", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas");
+        $temp = "";
+
+        if ($nilai < 12) {
+            $temp = " " . $huruf[$nilai];
+        } else if ($nilai < 20) {
+            $temp = $this->logikaTerbilang($nilai - 10) . " Belas ";
+        } else if ($nilai < 100) {
+            $temp = $this->logikaTerbilang($nilai / 10) . " Puluh " . $this->logikaTerbilang($nilai % 10);
+        } else if ($nilai < 200) {
+            $temp = " Seratus " . $this->logikaTerbilang($nilai - 100);
+        } else if ($nilai < 1000) {
+            $temp = $this->logikaTerbilang($nilai / 100) . " Ratus " . $this->logikaTerbilang($nilai % 100);
+        } else if ($nilai < 2000) {
+            $temp = " Seribu " . $this->logikaTerbilang($nilai - 1000);
+        } else if ($nilai < 1000000) {
+            $temp = $this->logikaTerbilang($nilai / 1000) . " Ribu " . $this->logikaTerbilang($nilai % 1000);
+        } else if ($nilai < 1000000000) {
+            $temp = $this->logikaTerbilang($nilai / 1000000) . " Juta " . $this->logikaTerbilang($nilai % 1000000);
+        }
+
+        return $temp;
     }
 }
