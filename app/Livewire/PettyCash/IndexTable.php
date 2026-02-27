@@ -63,6 +63,7 @@ class IndexTable extends Component
                                 \App\Enums\PettyCashStatus::PENDING_MANAGER, // Inbox (Perlu diapprove)
                                 \App\Enums\PettyCashStatus::PENDING_DIRECTOR, // Monitoring
                                 \App\Enums\PettyCashStatus::PENDING_FINANCE, // Monitoring
+                                \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
                                 \App\Enums\PettyCashStatus::PAID, // History Selesai
                                 \App\Enums\PettyCashStatus::REJECTED, // History Ditolak (Opsional)
                             ]);
@@ -96,14 +97,25 @@ class IndexTable extends Component
                     \App\Enums\PettyCashStatus::PENDING_SUPERVISOR,
                     \App\Enums\PettyCashStatus::PENDING_MANAGER,
                     \App\Enums\PettyCashStatus::PENDING_FINANCE,
+                    \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
                     \App\Enums\PettyCashStatus::PAID
                 ]);
         } elseif ($user->role === 'finance') {
-            $query->whereIn('status', [
-                \App\Enums\PettyCashStatus::PENDING_FINANCE,
-                \App\Enums\PettyCashStatus::PAID,
-                \App\Enums\PettyCashStatus::REJECTED,
-            ]);
+            if (strtolower($user->level) === 'manager') {
+                $query->whereIn('status', [
+                    \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
+                    \App\Enums\PettyCashStatus::PENDING_FINANCE,
+                    \App\Enums\PettyCashStatus::PAID,
+                    \App\Enums\PettyCashStatus::REJECTED,
+                ]);
+            } else {
+                $query->whereIn('status', [
+                    \App\Enums\PettyCashStatus::PENDING_FINANCE, // Inbox Utama Staff
+                    \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER, // History yg sdh dia forward
+                    \App\Enums\PettyCashStatus::PAID,
+                    \App\Enums\PettyCashStatus::REJECTED,
+                ]);
+            }
         } else {
             // Role User Biasa
             $query->where('user_id', $user->id);
