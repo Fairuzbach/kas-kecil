@@ -192,6 +192,7 @@
             @php
                 $isApprover = false;
                 $method = '';
+                $user = auth()->user();
 
                 if ($request->status->value === 'pending_supervisor' && auth()->id() == $request->approver_id) {
                     $isApprover = true;
@@ -209,7 +210,18 @@
                 ) {
                     $isApprover = true;
                     $method = 'approveDirector';
-                } elseif ($request->status->value === 'pending_finance' && auth()->user()->role === 'finance') {
+                } elseif (
+                    $request->status->value === 'pending_finance' &&
+                    auth()->user()->role === 'finance' &&
+                    strtolower($user->level) !== 'manager'
+                ) {
+                    $isApprover = true;
+                    $method = 'verifyCoa';
+                } elseif (
+                    $request->status->value === 'pending_finance_manager' &&
+                    auth()->user()->role === 'finance' &&
+                    strtolower($user->leve) === 'manager'
+                ) {
                     $isApprover = true;
                     $method = 'approveFinance';
                 }
@@ -220,16 +232,21 @@
                     class="mt-8 mb-4 p-5 bg-indigo-50 rounded-xl border-2 border-dashed border-indigo-200 print:hidden">
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div>
-                            <h4 class="text-indigo-900 font-bold uppercase tracking-tight">Konfirmasi Persetujuan</h4>
-                            <p class="text-xs text-indigo-600">Silakan periksa kembali rincian di atas sebelum
-                                menyetujui.</p>
+                            <h4 class="text-indigo-900 font-bold uppercase tracking-tight">
+                                {{ $request->status->value === 'pending_finance' ? 'Verifikasi COA' : 'Konfirmasi Persetujuan' }}
+                            </h4>
+                            <p class="text-xs text-indigo-600">
+                                {{ $request->status->value === 'pending_finance'
+                                    ? 'Silakan periksa dan sesuaikan pilihan COA sebelum diteruskan ke Manager Finance.'
+                                    : 'Silakan periksa kembali rincian di atas sebelum menyetujui.' }}
+                            </p>
                         </div>
                         <div class="flex gap-3 w-full sm:w-auto">
                             <button wire:click="confirmReject"
                                 class="flex-1 sm:flex-none px-6 py-2.5 bg-white border-2 border-red-500 text-red-600 font-bold rounded-lg hover:bg-red-50 transition shadow-sm active:scale-95">
-                                Tolak
+                                Tolak / Kembalikan
                             </button>
-                            <button wire:click="{{ $method }}" wire:loading.attr="disabled"
+                            <button wire:click="$set('showAcceptModal', true)" wire:loading.attr="disabled"
                                 class="flex-1 sm:flex-none px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-md transition active:scale-95 flex items-center justify-center gap-2">
                                 <span wire:loading.remove wire:target="{{ $method }}"
                                     class="flex items-center gap-2">
@@ -237,7 +254,15 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M5 13l4 4L19 7"></path>
                                     </svg>
-                                    {{ $request->status->value === 'pending_finance' ? 'Cairkan Dana' : 'Setujui' }}
+
+                                    @if ($request->status->value === 'pending_finance')
+                                        Verifikasi COA
+                                    @elseif ($request->status->value === 'pending_finance_manager')
+                                        Cairkan Dana
+                                    @else
+                                        Setujui
+                                    @endif
+
                                 </span>
                                 <span wire:loading wire:target="{{ $method }}">Memproses...</span>
                             </button>
@@ -360,7 +385,7 @@
 
         {{-- MODAL PREVIEW & REJECT --}}
         <x-petty-cash.modal-preview />
-        <x-petty-cash.modal-reject-and-accept :showRejectModal="$showRejectModal" />
+        <x-petty-cash.modal-reject-and-accept :showRejectModal="$showRejectModal" :showAcceptModal="$showAcceptModal" :method="$method" :request="$request" />
 
     </div>
 </div>
