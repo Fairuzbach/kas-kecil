@@ -49,12 +49,99 @@ class CreateRequest extends Component
         ['item_name' => '', 'amount' => '', 'coa_id' => '']
     ];
 
-    public function updated($property)
+    public function updated($property, $value = null)
     {
-        // Mengecek apakah input yang sedang diketik berawalan 'items.'
         if (str_starts_with($property, 'items.')) {
             $this->calculateTotal();
+
+            if (preg_match('/items\.(\d+).item_name/', $property, $matches)) {
+                $index = $matches[1];
+
+                $this->autoSuggestByKeyword($index, $value);
+            }
+
+            if (preg_match('/items\.(\d+)\.coa_id/', $property, $matches)) {
+                $index = $matches[1];
+                $this->suggestedCoas[$index] = null;
+            }
         }
+    }
+
+    public function ignoreSuggestion($index)
+    {
+        $this->suggestedCoas[$index] = null;
+    }
+
+    public $suggestedCoas = [];
+    public $inlineSuggestions = [];
+
+    private function autoSuggestByKeyword($index, $text)
+    {
+        $this->suggestedCoas[$index] = null;
+        $this->inlineSuggestions[$index] = null;
+
+        if (empty($text)) return;
+
+        $textLower = strtolower($text);
+        $user = auth()->user();
+
+        $words = explode(' ', $text);
+        $lastWordOriginal = end($words);
+        $lastWordLower = strtolower($lastWordOriginal);
+
+
+        $coas = \App\Models\Coa::query()->whereNotNull('keywords')->where(function ($query) use ($user) {
+            $query->whereHas('departments', function ($q) use ($user) {
+                $q->where('departments.id', $user->department_id);
+            })->orDoesntHave('departments');
+        })->get();
+
+        $foundCoa = false;
+        $foundInline = false;
+
+        foreach ($coas as $coa) {
+            $keywords = explode(',', strtolower($coa->keywords));
+
+            foreach ($keywords as $keyword) {
+                $keyword = trim($keyword);
+
+                if (!$foundCoa && strlen($textLower) >= 3 && str_contains($textLower, $keyword)) {
+                    $this->suggestedCoas[$index] = [
+                        'id' => $coa->id,
+                        'label' => $coa->code . ' - ' . $coa->name
+                    ];
+                    $foundCoa = true;
+                }
+
+                if (!$foundInline && strlen($lastWordLower) >= 2) {
+                    if (str_starts_with($keyword, $lastWordLower) && $keyword !== $lastWordLower) {
+                        $sisaHuruf = substr($keyword, strlen($lastWordLower));
+                        $this->inlineSuggestions[$index] = $text . $sisaHuruf;
+                        $foundInline = true;
+                    }
+                }
+
+                if ($foundCoa && $foundInline) {
+                    break 2;
+                }
+            }
+        }
+    }
+
+    public function acceptInlineSuggestion($index)
+    {
+        if (!empty($this->inlineSuggestions[$index])) {
+            $this->items[$index]['item_name'] = $this->inlineSuggestions[$index];
+            $this->inlineSuggestions[$index] = null;
+
+            $this->autoSuggestByKeyword($index, $this->items[$index]['item_name']);
+        }
+    }
+
+    public function applySuggestion($index, $coaId)
+    {
+        $this->items[$index]['coa_id'] = $coaId;
+        $this->suggestedCoas[$index] = null;
     }
 
     public function calculateTotal()
