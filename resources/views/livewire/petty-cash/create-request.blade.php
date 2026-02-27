@@ -90,40 +90,69 @@
                             <td class="border border-black px-2 py-1.5 text-center">{{ $index + 1 }}.</td>
 
                             <td class="border border-black px-2 py-1.5 relative align-top">
+                                <div class="relative w-full">
+                                    <div class="relative w-full flex items-center h-full">
+                                        <input type="text"
+                                            wire:model.live.debounce.150ms="items.{{ $index }}.item_name"
+                                            wire:keydown.tab.prevent="acceptInlineSuggestion({{ $index }})"
+                                            wire:keydown.right.prevent="acceptInlineSuggestion({{ $index }})"
+                                            class="relative z-10 uppercase w-full border-none p-0 m-0 focus:ring-0 text-xs bg-transparent font-sans"
+                                            placeholder="Masukkan keterangan...">
 
-                                <div class="relative w-full flex items-center">
-                                    <div
-                                        class="absolute inset-0 pointer-events-none p-0 m-0 text-xs uppercase whitespace-pre font-sans overflow-hidden flex items-center">
-                                        @if (!empty($inlineSuggestions[$index]))
-                                            <span class="text-transparent">{{ $items[$index]['item_name'] }}</span><span
-                                                class="text-gray-400">{{ substr($inlineSuggestions[$index], strlen($items[$index]['item_name'])) }}</span>
-                                        @endif
                                     </div>
 
-                                    <input type="text"
-                                        wire:model.live.debounce.150ms="items.{{ $index }}.item_name"
-                                        wire:keydown.tab.prevent="acceptInlineSuggestion({{ $index }})"
-                                        class="relative z-10 uppercase w-full border-none p-0 m-0 focus:ring-0 text-xs bg-transparent font-sans"
-                                        placeholder="Masukkan keterangan...">
-                                </div>
+                                    @if (!empty($suggestedCoas[$index]) && count($suggestedCoas[$index]) > 0)
+                                        <div
+                                            class="absolute z-30 left-0 top-full mt-2 w-full sm:w-[150%] md:w-[200%] bg-blue-50 border border-blue-200 shadow-xl rounded-md p-1.5 text-xs text-left">
 
-                                @if (!empty($suggestedCoas[$index]))
-                                    <div
-                                        class="absolute z-20 left-0 top-full mt-1 w-full bg-blue-50 border border-blue-200 shadow-md rounded p-1.5 text-xs text-left">
-                                        <div class="flex justify-between items-center mb-1">
-                                            <span class="text-gray-500 text-[10px]">Saran Akun: (Tekan Tab untuk
-                                                melengkapi teks)</span>
-                                            <button type="button" wire:click="ignoreSuggestion({{ $index }})"
-                                                class="text-gray-400 hover:text-red-500 text-[10px] px-1 font-bold">✕</button>
+                                            <div class="flex justify-between items-center mb-1 px-1">
+                                                <span
+                                                    class="text-blue-700 text-[10px] font-bold uppercase tracking-wider">💡
+                                                    Saran COA:</span>
+                                                <button type="button"
+                                                    wire:click="$set('suggestedCoas.{{ $index }}', [])"
+                                                    class="text-gray-400 hover:text-red-500 text-[10px] px-1 font-bold">✕</button>
+                                            </div>
+
+                                            <div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                                                @foreach ($suggestedCoas[$index] as $key => $suggestion)
+                                                    <button type="button"
+                                                        wire:click="applySuggestion({{ $index }}, '{{ $suggestion['id'] }}')"
+                                                        class="suggestion-item w-full text-left px-2 py-1.5 bg-white border border-blue-100 hover:bg-blue-100 hover:border-blue-300 text-blue-800 rounded transition-all duration-150 hover:pl-3 shadow-sm"
+                                                        style="animation: fadeSlideIn 0.2s ease both; animation-delay: {{ $key * 40 }}ms;">
+
+                                                        <div class="font-bold text-xs">
+                                                            {{ $suggestion['label'] }}
+                                                        </div>
+
+                                                        @if (!empty($suggestion['help_text']))
+                                                            <div
+                                                                class="text-[10px] text-gray-500 font-normal italic mt-0.5 leading-tight text-wrap">
+                                                                {{ $suggestion['help_text'] }}
+                                                            </div>
+                                                        @endif
+
+                                                    </button>
+                                                @endforeach
+                                            </div>
+
+                                            <style>
+                                                @keyframes fadeSlideIn {
+                                                    from {
+                                                        opacity: 0;
+                                                        transform: translateY(-4px);
+                                                    }
+
+                                                    to {
+                                                        opacity: 1;
+                                                        transform: translateY(0);
+                                                    }
+                                                }
+                                            </style>
                                         </div>
-                                        <button type="button"
-                                            wire:click="applySuggestion({{ $index }}, '{{ $suggestedCoas[$index]['id'] }}')"
-                                            class="w-full text-left px-2 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium rounded transition">
-                                            Gunakan: {{ $suggestedCoas[$index]['label'] }}
-                                        </button>
-                                    </div>
-                                @endif
+                                    @endif
 
+                                </div>
                             </td>
 
                             <td class="border border-black px-2 py-1.5">
