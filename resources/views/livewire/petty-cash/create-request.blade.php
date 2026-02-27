@@ -108,7 +108,7 @@
                                             <div class="flex justify-between items-center mb-1 px-1">
                                                 <span
                                                     class="text-blue-700 text-[10px] font-bold uppercase tracking-wider">💡
-                                                    Saran COA:</span>
+                                                    Saran COA by AI(ARTIFICIAL INTELLIGENCE):</span>
                                                 <button type="button"
                                                     wire:click="$set('suggestedCoas.{{ $index }}', [])"
                                                     class="text-gray-400 hover:text-red-500 text-[10px] px-1 font-bold">✕</button>
