@@ -77,54 +77,56 @@ class CreateRequest extends Component
 
     private function autoSuggestByKeyword($index, $text)
     {
-        $this->suggestedCoas[$index] = null;
-        $this->inlineSuggestions[$index] = null;
+        $this->suggestedCoas[$index] = []; // Ubah menjadi array kosong
+        // $this->inlineSuggestions[$index] = null;
 
         if (empty($text)) return;
 
         $textLower = strtolower($text);
         $user = auth()->user();
 
-        $words = explode(' ', $text);
-        $lastWordOriginal = end($words);
-        $lastWordLower = strtolower($lastWordOriginal);
+        $coas = \App\Models\Coa::query()
+            ->whereNotNull('keywords')
+            ->where(function ($query) use ($user) {
+                $query->whereHas('departments', function ($q) use ($user) {
+                    $q->where('departments.id', $user->department_id);
+                })->orDoesntHave('departments');
+            })->get();
 
-
-        $coas = \App\Models\Coa::query()->whereNotNull('keywords')->where(function ($query) use ($user) {
-            $query->whereHas('departments', function ($q) use ($user) {
-                $q->where('departments.id', $user->department_id);
-            })->orDoesntHave('departments');
-        })->get();
-
-        $foundCoa = false;
-        $foundInline = false;
+        $matches = []; // Penampung sementara untuk COA yang cocok
 
         foreach ($coas as $coa) {
             $keywords = explode(',', strtolower($coa->keywords));
 
             foreach ($keywords as $keyword) {
                 $keyword = trim($keyword);
+                if ($keyword === '') continue;
 
-                if (!$foundCoa && strlen($textLower) >= 3 && str_contains($textLower, $keyword)) {
-                    $this->suggestedCoas[$index] = [
+                // Jika keyword ada di dalam teks yang diketik user
+                if (strlen($textLower) >= 3 && str_contains($textLower, $keyword)) {
+
+                    // Beri nilai lebih (prioritas) jika keywordnya adalah kata kerja operasional
+                    $isPriority = in_array($keyword, ['sewa', 'rental', 'jasa', 'servis', 'perbaikan', 'denda', 'pajak']);
+
+                    $matches[] = [
                         'id' => $coa->id,
-                        'label' => $coa->code . ' - ' . $coa->name
+                        'label' => $coa->code . ' - ' . $coa->name,
+                        'help_text' => $coa->help_text,
+                        'priority' => $isPriority ? 1 : 0 // Prioritas tinggi ditaruh di atas
                     ];
-                    $foundCoa = true;
-                }
 
-                if (!$foundInline && strlen($lastWordLower) >= 2) {
-                    if (str_starts_with($keyword, $lastWordLower) && $keyword !== $lastWordLower) {
-                        $sisaHuruf = substr($keyword, strlen($lastWordLower));
-                        $this->inlineSuggestions[$index] = $text . $sisaHuruf;
-                        $foundInline = true;
-                    }
-                }
-
-                if ($foundCoa && $foundInline) {
-                    break 2;
+                    break; // Lanjut ke COA berikutnya agar tidak dobel
                 }
             }
+        }
+
+        // Jika ada yang cocok, urutkan berdasarkan prioritas, lalu ambil maksimal 3 teratas
+        if (!empty($matches)) {
+            usort($matches, function ($a, $b) {
+                return $b['priority'] <=> $a['priority']; // Urutkan priority 1 ke atas
+            });
+
+            $this->suggestedCoas[$index] = array_slice($matches, 0, 3);
         }
     }
 
