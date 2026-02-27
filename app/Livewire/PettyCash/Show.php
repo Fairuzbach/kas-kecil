@@ -11,6 +11,7 @@ class Show extends Component
 {
     public PettyCashRequest $request;
     public $showRejectModal = false;
+    public $showAcceptModal = false;
     public $rejectionReason = '';
 
     public function mount(PettyCashRequest $pettyCashRequest)
@@ -150,7 +151,22 @@ class Show extends Component
             'icon'  => 'success'
         ]);
     }
+    public function verifyCoa()
+    {
+        $user = auth()->user();
 
+        // Pastikan hanya staff finance (bukan manager) yang bisa akses
+        if ($user->role !== 'finance' || strtolower($user->level) === 'manager') {
+            abort(403, 'Akses ditolak.');
+        }
+
+        // Ubah status ke Manager
+        $this->request->status = \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER;
+        $this->request->save();
+
+        session()->flash('success', 'COA berhasil diverifikasi dan diteruskan ke Finance Manager.');
+        return redirect()->route('dashboard');
+    }
     public function approveFinance()
     {
         if (auth()->user()->role !== 'finance') {
