@@ -14,6 +14,7 @@ enum PettyCashStatus: string
     case PENDING_HC = 'pending_hc';
     case PAID = 'paid';
     case REJECTED = 'rejected';
+    case REVISION = 'revision';
 
     public function label(): string
     {
@@ -28,6 +29,7 @@ enum PettyCashStatus: string
             self::PENDING_FINANCE_MANAGER => 'Menunggu Finance MANAGER Prosess',
             self::PAID => 'Selesai / Dibayar',
             self::REJECTED => 'Ditolak',
+            self::REVISION => 'Dikembalikan (Butuh Revisi)',
         };
     }
 }

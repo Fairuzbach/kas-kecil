@@ -13,10 +13,14 @@ class Show extends Component
     public $showRejectModal = false;
     public $showAcceptModal = false;
     public $rejectionReason = '';
+    public $showRevisionModal = false;
+    public $revisionReason = '';
+    public $items = [];
 
     public function mount(PettyCashRequest $pettyCashRequest)
     {
         $this->request = $pettyCashRequest->load(['details.coa', 'user', 'department']);
+        $this->items = $this->request->details->toArray();
     }
 
     public function updateCoa($detailId, $newCoaId)
@@ -154,9 +158,11 @@ class Show extends Component
     public function verifyCoa()
     {
         $user = auth()->user();
+        $userEmployee = \App\Models\Employee::where('nik', $user->nik)->first();
+        $userLevel = $userEmployee ? strtolower($userEmployee->level) : '';
 
         // Pastikan hanya staff finance (bukan manager) yang bisa akses
-        if ($user->role !== 'finance' || strtolower($user->level) === 'manager') {
+        if ($user->role !== 'finance' || $userLevel === 'manager') {
             abort(403, 'Akses ditolak.');
         }
 
@@ -169,23 +175,26 @@ class Show extends Component
     }
     public function approveFinance()
     {
-        if (auth()->user()->role !== 'finance') {
-            abort(403, 'Anda bukan Finance!');
+        $user = auth()->user();
+        $userEmployee = \App\Models\Employee::where('nik', $user->nik)->first();
+        $userLevel = $userEmployee ? strtolower($userEmployee->level) : '';
+        if ($user->role !== 'finance' || $userLevel !== 'manager') {
+            abort(403, 'Akses ditolak. Anda bukan Finance Manager!');
         }
-
-        if ($this->request->status->value !== 'pending_finance') {
-            $this->dispatch('notify', 'Status tiket tidak valid untuk dicairkan.');
+        if ($this->request->status->value !== 'pending_finance_manager') {
+            $this->dispatch('swal', [
+                'title' => 'Gagal!',
+                'text'  => 'Status tiket saat ini tidak valid untuk dicairkan.',
+                'icon'  => 'error'
+            ]);
+            $this->showAcceptModal = false;
             return;
         }
-
-        $this->request->update([
-            'status' => \App\Enums\PettyCashStatus::PAID,
-        ]);
-        $this->dispatch('swal', [
-            'title' => 'Berhasil!',
-            'text'  => 'Dana berhasil dibayar/dicairkan!',
-            'icon'  => 'success'
-        ]);
+        $this->request->status = \App\Enums\PettyCashStatus::PAID;
+        $this->request->save();
+        $this->showAcceptModal = false;
+        session()->flash('success', 'Dana berhasil dibayar/dicairkan!');
+        return redirect()->route('dashboard');
     }
 
     public function confirmReject()
@@ -211,6 +220,71 @@ class Show extends Component
 
         session()->flash('success', 'Pengajuan berhasil ditolak.');
     }
+
+    public function confirmRevision()
+    {
+        $this->showRevisionModal = true;
+    }
+
+    public function requestRevision()
+    {
+        $this->validate([
+            'revisionReason' => 'required|string|min:5',
+        ], [
+            'revisionReason.required' => 'Catatan revisi wajib diisi agar pemohon tahu apa yang harus diperbaiki.',
+            'revisionReason.min' => 'Catatan revisi terlalu pendek (minimal 5 karakter).'
+        ]);
+
+        $this->request->status = \App\Enums\PettyCashStatus::REVISION;
+        $this->request->rejected_by = auth()->id();
+        $this->request->rejection_note = $this->revisionReason;
+
+        $this->request->save();
+
+        $this->showRevisionModal = false;
+        $this->revisionReason = '';
+
+        session()->flash('success', 'Pengajuan berhasil dikembalikan ke pemohon untuk direvisi.');
+        return redirect()->route('dashboard');
+    }
+
+    public function resubmit()
+    {
+        if (auth()->id() !== $this->request->user_id || $this->request->status->value !== 'revision') {
+            abort(403, 'Akses Ditolak. Anda tidak dapat mengedit pengajuan ini.');
+        }
+
+        $totalAmount = 0;
+
+        foreach ($this->items as $itemData) {
+            $detail = \App\Models\PettyCashDetail::find($itemData['id']);
+            if ($detail) {
+                $detail->update([
+                    'item_name' => $itemData['item_name'],
+                    'amount' => $itemData['amount'],
+                ]);
+                $totalAmount += $itemData['amount'];
+            }
+        }
+
+        $nextStatus = $this->request->approver_id
+            ? \App\Enums\PettyCashStatus::PENDING_SUPERVISOR
+            : \App\Enums\PettyCashStatus::PENDING_MANGER;
+
+        $this->request->update([
+            'amount' => $totalAmount,
+            'status' => $nextStatus,
+            'supervisor_approved_at' => null,
+            'manager_approved_at' => null,
+            'director_approved_at' => null,
+            'rejection_note' => null,
+            'rejected_by' => null,
+        ]);
+
+        session()->flash('success', 'Pengajuan berhasil diperbarui dan diajukan ulang ke Supervisor');
+        return redirect()->route('dashboard');
+    }
+
     public function render()
     {
         $departmentCoas = \App\Models\Coa::select('coas.*')
