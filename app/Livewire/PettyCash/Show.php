@@ -318,7 +318,7 @@ class Show extends Component
 
         $nextStatus = $this->request->approver_id
             ? \App\Enums\PettyCashStatus::PENDING_SUPERVISOR
-            : \App\Enums\PettyCashStatus::PENDING_MANGER;
+            : \App\Enums\PettyCashStatus::PENDING_MANAGER;
 
         $this->request->update([
             'amount' => $totalAmount,

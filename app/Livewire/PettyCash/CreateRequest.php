@@ -4,8 +4,14 @@ namespace App\Livewire\PettyCash;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\Attributes\Layout;
 use App\Models\PettyCashDetail;
 use Illuminate\Support\Number;
+
+use thiagoalessio\TesseractOCR\TesseractOCR;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Spatie\PdfToImage\Pdf;
 
 class CreateRequest extends Component
 {
@@ -30,7 +36,7 @@ class CreateRequest extends Component
     public $tanggal;
     public $tracking_number;
     public $dibayar_kepada;
-
+    public $is_ocr_scanned = false;
 
 
 
@@ -49,6 +55,72 @@ class CreateRequest extends Component
         ['item_name' => '', 'amount' => '', 'coa_id' => '']
     ];
 
+    public function processOcr($base64Image, $itemIndex)
+    {
+        try {
+            $imageParts = explode(";base64,", $base64Image);
+            if (count($imageParts) < 2) {
+                throw new \Exception("Format gambar tidak valid.");
+            }
+
+            $imageDecoded = base64_decode($imageParts[1]);
+            $fileName = 'temp_ocr_' . time() . '_' . Str::random(5) . '.png';
+            $filePath = storage_path('app' . DIRECTORY_SEPARATOR . $fileName);
+            file_put_contents($filePath, $imageDecoded);
+            if (!file_exists($filePath)) {
+                throw new \Exception("Gagal membuat file gambar sementara di server.");
+            }
+            // $image = new \Imagick($filePath);
+            // $image->adaptiveResizeImage(1000, 1000, true);
+            // $image->writeImage($filePath);
+            $ocrText = '';
+            try {
+                $ocrText = (new TesseractOCR($filePath))
+                    ->psm(7)
+                    ->allowlist(range('0', '9'), 'R', 'p', '.', ',', ' ', '-')
+                    ->run();
+            } catch (\Exception $tesseractException) {
+                \Illuminate\Support\Facades\Log::warning('Tesseract Gagal Membaca: ' . $tesseractException->getMessage());
+            }
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+            $rawText = trim($ocrText);
+            $filtered = preg_replace('/[^0-9.,]/', '', $rawText);
+            if (preg_match('/[.,](\d{2})$/', $filtered, $matches)) {
+                $filtered = substr($filtered, 0, -3);
+            }
+            $cleanText = preg_replace('/[^0-9]/', '', $filtered);
+            if (!empty($cleanText) && (float)$cleanText > 0) {
+                $this->items[$itemIndex]['amount'] = (float) $cleanText;
+                $this->items[$itemIndex]['amount_ocr'] = (float) $cleanText;
+                $this->calculateTotal();
+                $this->is_ocr_scanned = true;
+                $this->dispatch('swal', [
+                    'title' => 'Berhasil! 🎉',
+                    'text'  => 'Nominal terbaca: Rp ' . number_format((float)$cleanText, 0, ',', '.'),
+                    'icon'  => 'success'
+                ]);
+            } else {
+                $this->dispatch('swal', [
+                    'title' => 'Angka Sulit Dibaca 🧐',
+                    'text'  => 'Sistem tidak menemukan angka yang jelas. Coba perlebar sedikit area kotaknya agar ada ruang kosong di sekitar angka, atau pastikan gambarnya tidak buram. Tulisan tangan kurang akurat untuk dibaca oleh sistem.',
+                    'icon'  => 'warning'
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('OCR System Error: ' . $e->getMessage());
+            $this->dispatch('swal', [
+                'title' => 'Sistem Kewalahan ⚙️',
+                'text'  => 'Maaf, terjadi kendala teknis saat memproses gambar. Silakan coba beberapa saat lagi, atau Anda bisa mengetik nominalnya secara manual.',
+                'icon'  => 'error'
+            ]);
+        }
+    }
+    public function updatedAttachment()
+    {
+        $this->is_ocr_scanned = false;
+    }
     public function updated($property, $value = null)
     {
         if (str_starts_with($property, 'items.')) {
@@ -236,6 +308,19 @@ class CreateRequest extends Component
 
     public function save($status = 'pending_manager')
     {
+        if ($this->attachment && in_array($this->attachment->extension(), ['jpg', 'jpeg', 'png', 'webp'])) {
+            if (!$this->is_ocr_scanned) {
+                $this->addError('ocr_required', 'Anda WAJIB melakukan Scan OCR Grand Total pada struk yang diunggah.');
+
+                // Munculkan pop-up error agar user sadar
+                $this->dispatch('swal', [
+                    'title' => 'Tindakan Diperlukan!',
+                    'text'  => 'Anda wajib melakukan Scan OCR pada gambar struk sebelum mengirim pengajuan.',
+                    'icon'  => 'warning'
+                ]);
+                return; // Hentikan proses save
+            }
+        }
         // 1. Filter baris kosong dulu agar tidak divalidasi
         $this->items = collect($this->items)->filter(function ($item) {
             return trim($item['item_name']) !== '';
@@ -320,6 +405,7 @@ class CreateRequest extends Component
                 'item_name' => $item['item_name'],
                 'amount'    => $item['amount'],
                 'coa_id'    => $finalCoaId,
+                'amount_ocr' => $item['amount_ocr'] ?? null,
             ];
         })->toArray();
 
@@ -371,7 +457,7 @@ class CreateRequest extends Component
         return view('livewire.petty-cash.create-request', [
             'coas' => $filteredCoas,
             'types' => \App\Enums\PettyCashType::cases(),
-        ]);
+        ])->layout('layouts.app');
     }
     public function updatedSearchKeyword()
     {

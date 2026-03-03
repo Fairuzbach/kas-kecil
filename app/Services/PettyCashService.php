@@ -41,7 +41,8 @@ class PettyCashService
                 $request->details()->create([
                     'item_name' => $item['item_name'],
                     'amount'    => $item['amount'],
-                    'coa_id'    => $item['coa_id'] ?? null
+                    'coa_id'    => $item['coa_id'] ?? null,
+                    'amount_ocr' => $item['amount_ocr'] ?? null,
                 ]);
             }
 

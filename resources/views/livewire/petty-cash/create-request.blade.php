@@ -1,8 +1,9 @@
+@assets
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+@endassets
 <div class="bg-gray-50 py-4 px-2 sm:px-4 font-sans text-black">
-
-    {{-- ========================================================= --}}
     {{-- PANEL DIGITAL (Hanya tampil di layar, sembunyi saat print) --}}
-    {{-- ========================================================= --}}
     <div class="w-full bg-white p-4 rounded-t-xl shadow-sm border-b-4 border-indigo-500 mb-4 print:hidden">
         <h3 class="text-base font-bold text-gray-800 mb-3">⚙️ Pengaturan Pengajuan (Digital)</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -24,13 +25,46 @@
 
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Upload Lampiran (Struk/Nota)</label>
-                <input type="file" wire:model="attachment" accept="image/*, application/pdf"
+                <input type="file" wire:model.live="attachment" accept="image/*, application/pdf"
                     class="w-full text-xs text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 <div wire:loading wire:target="attachment" class="text-xs text-blue-600 mt-1 animate-pulse">Mengunggah
                     file...</div>
                 @error('attachment')
                     <span class="text-red-500 text-xs">{{ $message }}</span>
                 @enderror
+                @if ($attachment && in_array($attachment->extension(), ['jpg', 'jpeg', 'png', 'webp', 'pdf']))
+                    <div
+                        class="mt-3 p-2.5 {{ $is_ocr_scanned ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-300' }} border rounded-lg flex items-center justify-between animate-fade-in print:hidden">
+
+                        <div
+                            class="flex items-center gap-2 text-xs {{ $is_ocr_scanned ? 'text-green-800' : 'text-red-800' }}">
+                            <span class="text-lg">{{ $is_ocr_scanned ? '✅' : '⚠️' }}</span>
+                            <span>
+                                <strong>{{ $is_ocr_scanned ? 'OCR Berhasil:' : 'Wajib Scan OCR:' }}</strong>
+                                {{ $is_ocr_scanned ? 'Nominal otomatis telah diekstrak.' : 'Silakan scan Grand Total struk ini.' }}
+                            </span>
+                        </div>
+
+                        @if (!$is_ocr_scanned)
+                            <button type="button"
+                                onclick="window.dispatchEvent(new CustomEvent('open-ocr', { detail: { index: 0, url: '{{ $attachment->temporaryUrl() }}', ext: '{{ strtolower($attachment->extension()) }}' } }))"
+                                class="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700 flex items-center gap-1 transition shadow-sm whitespace-nowrap animate-pulse">
+                                🔍 Lakukan Scan
+                            </button>
+                        @else
+                            <button type="button"
+                                onclick="window.dispatchEvent(new CustomEvent('open-ocr', { detail: { index: 0, url: '{{ $attachment->temporaryUrl() }}', ext: '{{ strtolower($attachment->extension()) }}' } }))"
+                                class="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700 flex items-center gap-1 transition shadow-sm whitespace-nowrap">
+                                🔄 Scan Ulang
+                            </button>
+                        @endif
+                    </div>
+
+                    {{-- Pesan Error Validasi OCR --}}
+                    @error('ocr_required')
+                        <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span>
+                    @enderror
+                @endif
             </div>
         </div>
     </div>
@@ -298,5 +332,150 @@
             Kirim Pengajuan
         </button>
     </div>
+    <div x-data="{
+        show: false,
+        imgUrl: '',
+        itemIndex: null,
+        cropper: null,
+        isProcessing: false,
+        isLoadingPdf: false,
+    
+        loadFile(url, ext) {
+            console.log('1. Modal terbuka, file: ' + ext);
+            this.show = true;
+            this.imgUrl = '';
+    
+            if (this.cropper) {
+                this.cropper.destroy();
+                this.cropper = null;
+            }
+    
+            if (ext === 'pdf') {
+                console.log('2. Memulai proses PDF.js...');
+                this.isLoadingPdf = true;
+    
+                if (typeof pdfjsLib === 'undefined') {
+                    alert('Error: Library PDF.js belum dimuat di halaman ini!');
+                    return;
+                }
+    
+                pdfjsLib.getDocument(url).promise.then(pdf => {
+                    console.log('3. PDF berhasil di-download. Total halaman: ' + pdf.numPages);
+                    return pdf.getPage(1);
+                }).then(page => {
+                    console.log('4. Halaman 1 berhasil diambil. Memulai render...');
+                    const scale = 2;
+                    const viewport = page.getViewport({ scale: scale });
+    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+    
+                    return page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
+                        console.log('5. Render selesai! Mengubah ke gambar...');
+                        this.imgUrl = canvas.toDataURL('image/png');
+                        this.isLoadingPdf = false;
+    
+                        this.$nextTick(() => {
+                            console.log('6. Menginisialisasi Cropper.js untuk PDF...');
+                            this.initOcr();
+                        });
+                    });
+                }).catch(err => {
+                    console.error('ERROR DARI PDF.JS:', err);
+                    alert('Gagal membaca PDF. Cek Console browser (F12) untuk detailnya.');
+                    this.isLoadingPdf = false;
+                    this.closeModal();
+                });
+    
+            } else {
+                console.log('2. Memproses Gambar Biasa (JPG/PNG)...');
+                this.imgUrl = url;
+                this.$nextTick(() => {
+                    console.log('3. Menginisialisasi Cropper.js untuk Gambar...');
+                    this.initOcr();
+                });
+            }
+        },
+    
+        initOcr() {
+            let image = document.getElementById('ocr-image');
+            if (this.cropper) {
+                this.cropper.destroy();
+            }
+            this.cropper = new Cropper(image, {
+                viewMode: 1,
+                dragMode: 'crop',
+                autoCropArea: 0.1,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: true,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+            });
+        },
+    
+        cropAndSend() {
+            if (!this.cropper) return;
+            this.isProcessing = true;
+    
+            let canvas = this.cropper.getCroppedCanvas();
+            let base64Image = canvas.toDataURL('image/png');
+    
+            $wire.processOcr(base64Image, this.itemIndex).then(() => {
+                this.isProcessing = false;
+                this.closeModal();
+            });
+        },
+    
+        closeModal() {
+            this.show = false;
+            this.isLoadingPdf = false;
+            if (this.cropper) {
+                this.cropper.destroy();
+                this.cropper = null;
+            }
+            this.imgUrl = '';
+        }
+    }"
+        @open-ocr.window="itemIndex = $event.detail.index; loadFile($event.detail.url, $event.detail.ext);"
+        x-show="show" style="display: none;"
+        class="fixed inset-0 z-[60] overflow-y-auto bg-black bg-opacity-80 flex items-center justify-center p-4">
+        <div x-show="isLoadingPdf" class="absolute text-white z-50 flex flex-col items-center">
+            <svg class="animate-spin h-8 w-8 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                    stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+            </svg>
+            <span>Memproses PDF...</span>
+        </div>
+        <div class="bg-white rounded-lg w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col"
+            @click.away="closeModal()">
+            <div class="p-4 bg-gray-900 text-white flex justify-between items-center">
+                <h3 class="font-bold">Arahkan Kotak ke Nominal Angka</h3>
+                <button @click="closeModal()" class="text-gray-400 hover:text-white">✕ Batal</button>
+            </div>
 
+            <div class="p-4 bg-gray-200 flex justify-center items-center overflow-hidden" style="height: 60vh;">
+                {{-- Gambar akan di-inject ke sini --}}
+                <img id="ocr-image" :src="imgUrl" class="max-w-full max-h-full block">
+            </div>
+
+            <div class="p-4 bg-white flex justify-end gap-3 border-t">
+                <button @click="closeModal()"
+                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-bold">Batal</button>
+                <button @click="cropAndSend()" :disabled="isProcessing"
+                    class="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold flex items-center gap-2">
+                    <span x-show="!isProcessing">🔍 Ekstrak Angka</span>
+                    <span x-show="isProcessing">Membaca...</span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
