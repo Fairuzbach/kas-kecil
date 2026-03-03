@@ -16,142 +16,103 @@
         </div>
 
         {{-- ========================================== --}}
-        {{-- VIEW DESKTOP (TABEL BIASA) --}}
+        {{-- VIEW DESKTOP (TABEL DAFTAR PENGAJUAN) --}}
         {{-- ========================================== --}}
-        <div class="hidden md:block overflow-x-auto">
-            <table class="min-w-full text-sm text-left text-gray-500">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
-                    <tr>
-                        <th class="px-6 py-3 font-bold">Tracking No</th>
-                        <th class="px-6 py-3 font-bold">Department</th> {{-- 👈 KOLOM BARU --}}
-                        <th class="px-6 py-3 font-bold">Judul</th>
-                        <th class="px-6 py-3 font-bold">Nominal</th>
-                        <th class="px-6 py-3 font-bold">Tipe</th>
-                        <th class="px-6 py-3 font-bold">Status</th>
-                        <th class="px-6 py-3 font-bold text-center">Aksi</th>
+        <div class="hidden md:block w-full overflow-x-auto">
+            <table class="w-full border-collapse border border-gray-200 text-sm mb-6 text-left">
+                <thead>
+                    <tr class="bg-gray-100 font-bold border-b-2 border-gray-300">
+                        <th class="border border-gray-200 px-4 py-3 w-16 text-center">NO.</th>
+                        <th class="border border-gray-200 px-4 py-3">REF NO.</th>
+                        <th class="border border-gray-200 px-4 py-3">TANGGAL</th>
+                        <th class="border border-gray-200 px-4 py-3">PEMOHON</th>
+                        <th class="border border-gray-200 px-4 py-3">DIBAYAR KEPADA</th>
+                        <th class="border border-gray-200 px-4 py-3 text-right">TOTAL</th>
+                        <th class="border border-gray-200 px-4 py-3 text-center">STATUS</th>
+                        <th class="border border-gray-200 px-4 py-3 text-center">AKSI</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse($requests as $req)
-                        <tr class="bg-white hover:bg-gray-50 transition-colors group">
-                            {{-- Tracking Number --}}
-                            <td class="px-6 py-4 font-mono font-medium text-gray-900 text-xs whitespace-nowrap">
-                                {{ $req->tracking_number ?? '-' }}
-                                <div class="text-[10px] text-gray-400 mt-1">{{ $req->created_at->format('d M Y') }}
-                                </div>
+                <tbody>
+                    @forelse ($requests as $index => $req)
+                        @php
+                            // Tentukan warna status secara eksplisit agar terbaca Tailwind
+                            $statusColor = match ($req->status->value) {
+                                'draft' => 'bg-gray-100 text-gray-700 border-gray-300',
+                                'pending_supervisor',
+                                'pending_manager',
+                                'pending_director'
+                                    => 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                                'pending_finance',
+                                'pending_finance_manager'
+                                    => 'bg-blue-100 text-blue-800 border-blue-300',
+                                'revision' => 'bg-orange-100 text-orange-800 border-orange-300',
+                                'paid' => 'bg-green-100 text-green-800 border-green-300',
+                                'rejected' => 'bg-red-100 text-red-800 border-red-300',
+                                default => 'bg-gray-100 text-gray-700 border-gray-300',
+                            };
+                        @endphp
+                        <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                            <td class="border-x border-gray-200 px-4 py-3 text-center text-gray-500">
+                                {{ $requests->firstItem() + $index }}.
                             </td>
+                            <td class="border-x border-gray-200 px-4 py-3 font-mono font-bold text-gray-700">
+                                #{{ $req->tracking_number }}
+                            </td>
+                            <td class="border-x border-gray-200 px-4 py-3 text-gray-600">
+                                {{ $req->created_at->timezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB
+                            </td>
+                            <td class="border-x border-gray-200 px-4 py-3 font-medium text-gray-900">
+                                {{ $req->user->name }}
+                            </td>
+                            <td class="border-x border-gray-200 px-4 py-3 text-gray-800 uppercase text-xs font-bold">
+                                {{ Str::limit($req->title, 30) }}
+                            </td>
+                            <td class="border-x border-gray-200 px-4 py-3 text-right whitespace-nowrap">
+                                <div class="flex flex-col items-end">
+                                    <span class="font-bold text-gray-900">
+                                        Rp {{ number_format($req->amount, 0, ',', '.') }}
+                                    </span>
 
-                            {{-- Department (BARU) --}}
-                            <td class="px-6 py-4">
-                                @if ($req->department)
-                                    <div class="flex flex-col">
+                                    {{-- Cek Selisih OCR --}}
+                                    @php
+                                        $ocrTotal = $req->details->sum('amount_ocr');
+                                        $isMismatch = $ocrTotal > 0 && abs($ocrTotal - $req->amount) >= 0.01;
+                                    @endphp
+
+                                    @if ($isMismatch && in_array(auth()->user()->role, ['finance', 'manager', 'director']))
                                         <span
-                                            class="font-bold text-gray-800 text-xs">{{ $req->department->code }}</span>
-                                        <span class="text-[10px] text-gray-500 truncate w-32"
-                                            title="{{ $req->department->name }}">
-                                            {{ Str::limit($req->department->name, 20) }}
+                                            class="text-[9px] text-red-700 bg-red-100 px-1.5 py-0.5 rounded border border-red-300 mt-1 shadow-sm font-bold animate-pulse"
+                                            title="Scan Asli: Rp {{ number_format($ocrTotal, 0, ',', '.') }}">
+                                            ⚠️ Tidak sesuai dengan lampiran
                                         </span>
-                                    </div>
-                                @else
-                                    <span class="text-gray-400 italic text-xs">-</span>
-                                @endif
-                            </td>
-
-                            {{-- Judul & User --}}
-                            <td class="px-6 py-4">
-                                <div
-                                    class="uppercase font-bold text-gray-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                                    {{ $req->title }}
-                                </div>
-                                <div class="flex items-center gap-1 mt-1">
-                                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
-                                        </path>
-                                    </svg>
-                                    <span class="text-xs text-gray-500">{{ $req->user->name }}</span>
-                                </div>
-                            </td>
-
-                            {{-- Nominal --}}
-                            <td class="px-6 py-4 font-mono font-bold text-gray-700 text-right whitespace-nowrap">
-                                Rp {{ number_format($req->amount, 0, ',', '.') }}
-                            </td>
-
-                            {{-- Tipe --}}
-                            <td class="px-6 py-4">
-                                <span
-                                    class="px-2.5 py-1 text-[10px] rounded-full bg-gray-100 text-gray-600 border border-gray-200 uppercase font-bold tracking-wide">
-                                    {{ $req->type->label() ?? $req->type }}
-                                </span>
-                            </td>
-
-                            {{-- Status Badge --}}
-                            <td class="px-6 py-4">
-                                @php
-                                    $colors = [
-                                        'draft' => 'gray',
-                                        'pending_supervisor' => 'orange',
-                                        'pending_manager' => 'yellow',
-                                        'pending_director' => 'blue',
-                                        'pending_finance' => 'indigo',
-                                        'pending_hc' => 'pink',
-                                        'paid' => 'emerald',
-                                        'approved' => 'green',
-                                        'rejected' => 'red',
-                                    ];
-                                    $color = $colors[$req->status->value] ?? 'gray';
-
-                                    // Cek apakah statusnya rejected untuk logic tooltip
-                                    $isRejected = $req->status->value === 'rejected';
-                                @endphp
-
-                                <span {{-- Jika rejected, tambahkan tooltip alasan --}}
-                                    @if ($isRejected) title="Alasan Penolakan: {{ $req->rejection_note ?? 'Tidak ada catatan' }}" @endif
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-{{ $color }}-50 text-{{ $color }}-700 border border-{{ $color }}-200 whitespace-nowrap {{ $isRejected ? 'cursor-help hover:bg-red-100' : '' }}">
-
-                                    <span class="w-1.5 h-1.5 rounded-full bg-{{ $color }}-500 mr-1.5"></span>
-                                    {{ $req->status->label() }}
-
-                                    {{-- Opsional: Tambahkan ikon info kecil jika rejected --}}
-                                    @if ($isRejected)
-                                        <svg class="w-3 h-3 ml-1 text-red-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
                                     @endif
+                                </div>
+                            </td>
+                            <td class="border-x border-gray-200 px-4 py-3 text-center">
+                                {{-- Warna status dipanggil di sini --}}
+                                <span
+                                    class="text-[10px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap {{ $statusColor }}">
+                                    {{ $req->status->label() }}
                                 </span>
                             </td>
-
-                            {{-- Aksi --}}
-                            <td class="px-6 py-4 text-center">
+                            <td class="border-x border-gray-200 px-4 py-3 text-center">
                                 <a href="{{ route('petty-cash.show', $req->id) }}" wire:navigate
-                                    class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm"
-                                    title="Lihat Detail">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7"></path>
-                                    </svg>
+                                    class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-600 hover:text-white transition-colors">
+                                    Detail
                                 </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center justify-center">
-                                    <div
-                                        class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                                        <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                            </path>
-                                        </svg>
-                                    </div>
-                                    <p class="text-gray-500 font-medium">Belum ada data pengajuan</p>
-                                    <p class="text-gray-400 text-xs mt-1">Silakan buat pengajuan baru</p>
+                            <td colspan="8" class="text-center py-10 bg-gray-50 border border-gray-200">
+                                <div class="flex flex-col items-center justify-center text-gray-500">
+                                    <svg class="w-10 h-10 mb-2 text-gray-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                        </path>
+                                    </svg>
+                                    <p class="text-sm font-medium">Belum ada riwayat pengajuan.</p>
                                 </div>
                             </td>
                         </tr>
@@ -165,15 +126,39 @@
         {{-- ========================================== --}}
         <div class="md:hidden space-y-4">
             @forelse($requests as $req)
+                @php
+                    // Warna Strip Samping Kiri
+                    $stripColor = match ($req->status->value) {
+                        'draft' => 'bg-gray-500',
+                        'pending_supervisor', 'pending_manager', 'pending_director' => 'bg-yellow-500',
+                        'pending_finance', 'pending_finance_manager' => 'bg-blue-500',
+                        'revision' => 'bg-orange-500',
+                        'paid' => 'bg-green-500',
+                        'rejected' => 'bg-red-500',
+                        default => 'bg-gray-500',
+                    };
+
+                    // Warna Latar Badge
+                    $badgeColor = match ($req->status->value) {
+                        'draft' => 'bg-gray-100 text-gray-700 border-gray-300',
+                        'pending_supervisor',
+                        'pending_manager',
+                        'pending_director'
+                            => 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                        'pending_finance', 'pending_finance_manager' => 'bg-blue-100 text-blue-800 border-blue-300',
+                        'revision' => 'bg-orange-100 text-orange-800 border-orange-300',
+                        'paid' => 'bg-green-100 text-green-800 border-green-300',
+                        'rejected' => 'bg-red-100 text-red-800 border-red-300',
+                        default => 'bg-gray-100 text-gray-700 border-gray-300',
+                    };
+                @endphp
                 <div
                     class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm active:scale-[0.99] transition-transform relative overflow-hidden">
 
                     {{-- Status Strip (Garis warna di kiri) --}}
-                    @php $color = $colors[$req->status->value] ?? 'gray'; @endphp
-                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-{{ $color }}-500"></div>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 {{ $stripColor }}"></div>
 
                     <div class="pl-3"> {{-- Padding kiri utk kompensasi garis --}}
-
                         <div class="flex justify-between items-start mb-2">
                             {{-- Tracking & Dept --}}
                             <div class="flex items-center gap-2">
@@ -190,8 +175,7 @@
                             </div>
 
                             {{-- Status Badge Kecil --}}
-                            <span
-                                class="text-[10px] font-bold text-{{ $color }}-700 bg-{{ $color }}-50 px-2 py-0.5 rounded-full border border-{{ $color }}-100">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border {{ $badgeColor }}">
                                 {{ $req->status->label() }}
                             </span>
                         </div>
@@ -209,7 +193,7 @@
                                 {{ Str::limit($req->user->name, 15) }}
                             </span>
                             <span>•</span>
-                            <span>{{ $req->created_at->format('d M H:i') }}</span>
+                            <span>{{ $req->created_at->timezone('Asia/Jakarta')->format('d M H:i') }} WIB</span>
                         </div>
 
                         {{-- Footer Card --}}
@@ -217,9 +201,24 @@
                             <div>
                                 <span
                                     class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-0.5">Nominal</span>
-                                <span class="font-mono font-bold text-gray-800 text-sm">
-                                    Rp {{ number_format($req->amount, 0, ',', '.') }}
-                                </span>
+                                <div class="flex flex-col">
+                                    <span class="font-mono font-bold text-gray-800 text-sm">
+                                        Rp {{ number_format($req->amount, 0, ',', '.') }}
+                                    </span>
+
+                                    {{-- Cek Selisih OCR (Mobile) --}}
+                                    @php
+                                        $ocrTotal = $req->details->sum('amount_ocr');
+                                        $isMismatch = $ocrTotal > 0 && abs($ocrTotal - $req->amount) >= 0.01;
+                                    @endphp
+
+                                    @if ($isMismatch && in_array(auth()->user()->role, ['finance', 'manager', 'director']))
+                                        <span
+                                            class="text-[9px] text-red-700 bg-red-100 px-1.5 py-0.5 rounded border border-red-300 mt-0.5 inline-block w-max font-bold animate-pulse">
+                                            ⚠️ Tidak sesuai dengan lampiran
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
 
                             <a href="{{ route('petty-cash.show', $req->id) }}" wire:navigate
@@ -245,7 +244,6 @@
                 </div>
             @endforelse
         </div>
-
         {{-- Pagination --}}
         <div class="mt-6">
             {{ $requests->links() }}

@@ -105,7 +105,7 @@
                                     {{ $index + 1 }}.
                                 </td>
 
-                                {{-- KOLOM KETERANGAN (Bisa jadi Input) --}}
+                                {{-- KOLOM KETERANGAN --}}
                                 <td class="uppercase border-x border-black px-3 py-3 text-lg font-medium">
                                     @if ($canEdit)
                                         <input type="text"
@@ -117,9 +117,11 @@
                                     @endif
                                 </td>
 
+                                {{-- KOLOM COA --}}
                                 <td class="border-x border-black px-3 py-3 text-center font-mono font-bold relative">
+                                    {{-- ... Kode COA Dropdown Anda tetap sama ... --}}
                                     @if (in_array(auth()->user()->role, ['cashier', 'finance']) && !in_array($request->status->value, ['paid', 'rejected']))
-                                        {{-- Alpine Dropdown COA --}}
+                                        {{-- (Bagian x-data AlpineJS COA Anda ada di sini) --}}
                                         <div x-data="{
                                             search: '',
                                             open: false,
@@ -138,8 +140,7 @@
                                             }
                                         }" class="relative w-full text-left font-sans">
                                             <button @click="open = !open" type="button"
-                                                class="w-full text-[11px] font-mono border-b-2 border-indigo-300 px-2 py-1.5 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-100 focus:outline-none flex justify-between items-center transition cursor-pointer"
-                                                title="Klik untuk ubah COA">
+                                                class="w-full text-[11px] font-mono border-b-2 border-indigo-300 px-2 py-1.5 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-100 focus:outline-none flex justify-between items-center transition cursor-pointer">
                                                 <span class="truncate pr-2">
                                                     {{ $item->coa ? $item->coa->code . ' - ' . $item->coa->name : '- Pilih COA -' }}
                                                 </span>
@@ -154,7 +155,7 @@
                                                 <div class="p-2 border-b border-gray-200 bg-gray-50">
                                                     <input type="text" x-model="search"
                                                         placeholder="Ketik nama atau kode COA..."
-                                                        class="w-full text-xs border-gray-300 rounded px-2 py-1.5 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                                                        class="w-full text-xs border-gray-300 rounded px-2 py-1.5 outline-none">
                                                 </div>
                                                 <ul class="max-h-48 overflow-y-auto text-xs font-mono">
                                                     <template x-for="option in filteredOptions" :key="option.id">
@@ -162,15 +163,8 @@
                                                             class="px-3 py-2 cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 border-b border-gray-100 last:border-0"
                                                             x-text="option.label"></li>
                                                     </template>
-                                                    <li x-show="filteredOptions.length === 0"
-                                                        class="px-3 py-3 text-gray-500 text-center italic">COA tidak
-                                                        ditemukan</li>
                                                 </ul>
                                             </div>
-                                        </div>
-                                        <div wire:loading wire:target="updateCoa({{ $item->id }})"
-                                            class="text-[9px] text-indigo-600 mt-1 animate-pulse italic">
-                                            Menyimpan...
                                         </div>
                                     @else
                                         <span
@@ -178,32 +172,31 @@
                                     @endif
                                 </td>
 
-                                <td class="border-x border-black px-3 py-3 text-center font-bold text-gray-600">
+                                <td
+                                    class="border-x border-black px-3 py-3 text-center font-bold text-gray-600 uppercase">
                                     {{ $request->department->code ?? 'GA' }}
                                 </td>
 
-                                {{-- KOLOM JUMLAH (Bisa jadi Input) --}}
+                                {{-- KOLOM JUMLAH (BERSIH TANPA PERINGATAN) --}}
                                 <td class="border-x border-black px-3 py-3">
                                     @if ($canEdit)
                                         <div class="flex items-center text-lg font-bold">
                                             <span>Rp.</span>
                                             <input type="number"
                                                 wire:model.live.debounce.300ms="items.{{ $index }}.amount"
-                                                class="w-full text-right text-lg font-bold border-b-2 border-orange-300 focus:border-orange-500 focus:ring-0 px-1 py-1 bg-orange-50 outline-none transition ml-1"
-                                                placeholder="0">
+                                                class="w-full text-right text-lg font-bold border-b-2 border-orange-300 focus:border-orange-500 focus:ring-0 px-1 py-1 bg-orange-50 outline-none transition ml-1">
                                         </div>
                                     @else
                                         <div class="flex justify-between items-center text-lg font-bold">
                                             <span>Rp.</span>
-                                            <span class="{{ $item->amount < 0 ? 'text-red-600' : '' }}">
-                                                {{ number_format($item->amount, 0, ',', '.') }}
-                                            </span>
+                                            <span>{{ number_format($item->amount, 0, ',', '.') }}</span>
                                         </div>
                                     @endif
                                 </td>
                             </tr>
                         @endforeach
 
+                        {{-- Baris Kosong --}}
                         @for ($i = 0; $i < 2; $i++)
                             <tr class="h-8">
                                 <td class="border-x border-black"></td>
@@ -214,16 +207,53 @@
                             </tr>
                         @endfor
                     </tbody>
+
                     <tfoot>
                         <tr class="bg-gray-100 border-t-2 border-black">
                             <td colspan="4"
-                                class="border border-black px-4 py-3 text-right font-bold tracking-widest text-xl uppercase">
-                                Total</td>
-                            <td class="border border-black px-3 py-3 font-bold bg-gray-200 text-xl">
-                                <div class="flex justify-between items-center w-full">
-                                    <span>Rp.</span>
-                                    {{-- Menggunakan variabel total dinamis jika sedang edit --}}
-                                    <span>{{ number_format($canEdit ? collect($items)->sum('amount') : $request->amount, 0, ',', '.') }}.-</span>
+                                class="border border-black px-4 py-4 text-right font-bold tracking-widest text-xl uppercase italic">
+                                Total
+                            </td>
+                            <td class="border border-black px-3 py-4 font-bold bg-gray-200 text-xl">
+                                <div class="flex flex-col w-full">
+                                    <div class="flex justify-between items-center w-full">
+                                        <span>Rp.</span>
+                                        <span>{{ number_format($canEdit ? collect($items)->sum('amount') : $request->amount, 0, ',', '.') }}.-</span>
+                                    </div>
+
+                                    {{-- PERINGATAN HANYA DI GRAND TOTAL --}}
+                                    @if (in_array(auth()->user()->role, ['finance', 'manager', 'director']))
+                                        @php
+                                            // Mengambil nilai scan dari item pertama saja (Grand Total Hasil OCR)
+                                            $firstItem = $request->details->first();
+                                            $ocrTotal = (float) ($firstItem->amount_ocr ?? 0);
+
+                                            $currentTotal = (float) ($canEdit
+                                                ? collect($items)->sum('amount')
+                                                : $request->amount);
+                                            $isMismatch = $ocrTotal > 0 && abs($ocrTotal - $currentTotal) > 0.01;
+                                        @endphp
+
+                                        @if ($isMismatch)
+                                            <div
+                                                class="mt-2 p-2 bg-white border border-red-400 rounded shadow-sm print:hidden">
+                                                <div
+                                                    class="text-[10px] text-red-700 font-black uppercase flex items-center gap-1 animate-pulse">
+                                                    ⚠️ Selisih dengan Bukti Scan
+                                                </div>
+                                                <div class="text-xs text-red-600 font-mono font-bold">
+                                                    Hasil Scan: Rp {{ number_format($ocrTotal, 0, ',', '.') }}
+                                                </div>
+                                            </div>
+                                        @elseif($ocrTotal > 0)
+                                            <div class="mt-2 text-right print:hidden">
+                                                <span
+                                                    class="text-[10px] text-green-700 font-bold bg-green-50 px-2 py-1 rounded border border-green-200">
+                                                    ✅ Total Sesuai Scan
+                                                </span>
+                                            </div>
+                                        @endif
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -305,45 +335,58 @@
 
             @if ($isApprover)
                 <div
-                    class="mt-8 mb-4 p-5 bg-indigo-50 rounded-xl border-2 border-dashed border-indigo-200 print:hidden">
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div>
-                            <h4 class="text-indigo-900 font-bold uppercase tracking-tight">
+                    class="mt-8 mb-4 p-4 sm:p-5 bg-indigo-50 rounded-xl border-2 border-dashed border-indigo-200 print:hidden overflow-hidden">
+                    <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+                        {{-- Bagian Teks --}}
+                        <div class="text-center lg:text-left w-full lg:w-1/2">
+                            <h4 class="text-indigo-900 font-bold uppercase tracking-tight text-sm sm:text-base">
                                 {{ $request->status->value === 'pending_finance' ? 'Verifikasi COA' : 'Konfirmasi Persetujuan' }}
                             </h4>
-                            <p class="text-xs text-indigo-600">
+                            <p class="text-[11px] sm:text-xs text-indigo-600 mt-1 leading-relaxed">
                                 {{ $request->status->value === 'pending_finance' ? 'Silakan periksa dan sesuaikan pilihan COA sebelum diteruskan ke Manager Finance.' : 'Silakan periksa kembali rincian di atas sebelum menyetujui.' }}
                             </p>
                         </div>
-                        <div class="flex gap-3 w-full sm:w-auto">
-                            @if (in_array($request->status->value, ['pending_director', 'pending_finance', 'pending_finance_manager']))
-                                <button type="button" wire:click="confirmRevision"
-                                    class="flex-1 sm:flex-none px-6 py-2.5 bg-white border-2 border-orange-500 text-orange-600 font-bold rounded-lg hover:bg-orange-50 transition shadow-sm active:scale-95">
-                                    Minta Revisi
+
+                        {{-- Bagian Button --}}
+                        <div class="w-full lg:w-auto mt-2 lg:mt-0">
+                            {{-- Grid untuk Mobile (2 kolom atas, 1 full bawah) --}}
+                            <div class="grid grid-cols-2 lg:flex gap-2 sm:gap-3">
+
+                                @if (in_array($request->status->value, ['pending_director', 'pending_finance', 'pending_finance_manager']))
+                                    <button type="button" wire:click="confirmRevision"
+                                        class="px-4 py-2.5 bg-white border-2 border-orange-500 text-orange-600 text-xs sm:text-sm font-bold rounded-lg hover:bg-orange-50 transition shadow-sm active:scale-95">
+                                        Minta Revisi
+                                    </button>
+                                @endif
+
+                                <button wire:click="confirmReject"
+                                    class="{{ in_array($request->status->value, ['pending_director', 'pending_finance', 'pending_finance_manager']) ? '' : 'col-span-1' }} px-4 py-2.5 bg-white border-2 border-red-500 text-red-600 text-xs sm:text-sm font-bold rounded-lg hover:bg-red-50 transition shadow-sm active:scale-95">
+                                    Tolak
                                 </button>
-                            @endif
-                            <button wire:click="confirmReject"
-                                class="flex-1 sm:flex-none px-6 py-2.5 bg-white border-2 border-red-500 text-red-600 font-bold rounded-lg hover:bg-red-50 transition shadow-sm active:scale-95">
-                                Tolak / Kembalikan
-                            </button>
-                            <button wire:click="$set('showAcceptModal', true)" wire:loading.attr="disabled"
-                                class="flex-1 sm:flex-none px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-md transition active:scale-95 flex items-center justify-center gap-2">
-                                <span wire:loading.remove wire:target="{{ $method }}"
-                                    class="flex items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    @if ($request->status->value === 'pending_finance')
-                                        Verifikasi COA
-                                    @elseif ($request->status->value === 'pending_finance_manager')
-                                        Cairkan Dana
-                                    @else
-                                        Setujui
-                                    @endif
-                                </span>
-                                <span wire:loading wire:target="{{ $method }}">Memproses...</span>
-                            </button>
+
+                                {{-- Tombol Utama (Setujui) - Di Mobile jadi Full Width di bawahnya --}}
+                                <button wire:click="$set('showAcceptModal', true)" wire:loading.attr="disabled"
+                                    class="col-span-2 lg:col-span-1 px-6 py-2.5 bg-emerald-600 text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-emerald-700 shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                                    <span wire:loading.remove wire:target="{{ $method }}"
+                                        class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                        <span>
+                                            @if ($request->status->value === 'pending_finance')
+                                                Verifikasi COA
+                                            @elseif ($request->status->value === 'pending_finance_manager')
+                                                Cairkan Dana
+                                            @else
+                                                Setujui
+                                            @endif
+                                        </span>
+                                    </span>
+                                    <span wire:loading wire:target="{{ $method }}">Memproses...</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
