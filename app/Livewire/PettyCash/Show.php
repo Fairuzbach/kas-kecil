@@ -248,6 +248,55 @@ class Show extends Component
         return redirect()->route('dashboard');
     }
 
+    public function updated($property, $value = null)
+    {
+        if (str_starts_with($property, 'items.')) {
+            if (preg_match('/items\.(\d+)\.amount/', $property, $matches)) {
+                $baseIndex = $matches[1];
+                $baseAmount = (float) ($value ?: 0);
+                $baseItemName = $this->items[$baseIndex]['item_name'] ?? '';
+                if (!empty($baseItemName)) {
+                    foreach ($this->items as $taxIndex => $taxItem) {
+                        $taxName = $taxItem['item_name'] ?? '';
+                        if (str_contains($taxName, 'PPN 11% (Ref: ' . $baseItemName . ')')) {
+                            $this->items[$taxIndex]['amount'] = $baseAmount * 0.11;
+                        }
+                        if (str_contains($taxName, 'Potongan PPh 23 2% (Ref: ' . $baseItemName . ')')) {
+                            $this->items[$taxIndex]['amount'] = round($baseAmount * 0.02) * -1;
+                        }
+                    }
+                }
+            }
+            if (preg_match('/items\.(\d+)\.coa_id/', $property, $matches)) {
+                $index = $matches[1];
+                $this->suggestedCoas[$index] = null;
+            }
+        }
+    }
+
+    public function updating($property, $value)
+    {
+        if (str_starts_with($property, 'items.')) {
+            if (preg_match('/items\.(\d+)\.item_name/', $property, $matches)) {
+                $baseIndex = $matches[1];
+                $oldItemName = $this->items[$baseIndex]['item_name'] ?? '';
+                $newItemName = $value;
+
+                if (!empty($oldItemName) && $oldItemName !== $newItemName) {
+                    foreach ($this->items as $taxIndex => $taxItem) {
+                        $taxName = $taxItem['item_name'] ?? '';
+                        if (str_contains($taxName, 'PPN 11% (Ref: ' . $oldItemName . ')')) {
+                            $this->items[$taxIndex]['item_name'] = 'PPN 11% (Ref: ' . $newItemName . ')';
+                        }
+                        if (str_contains($taxName, 'Potongan PPh 23 2% (Ref: ' . $oldItemName . ')')) {
+                            $this->items[$taxIndex]['item_name'] = 'Potongan PPh 23 2% (Ref: ' . $newItemName . ')';
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public function resubmit()
     {
         if (auth()->id() !== $this->request->user_id || $this->request->status->value !== 'revision') {

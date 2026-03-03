@@ -108,7 +108,8 @@
                                 {{-- KOLOM KETERANGAN (Bisa jadi Input) --}}
                                 <td class="uppercase border-x border-black px-3 py-3 text-lg font-medium">
                                     @if ($canEdit)
-                                        <input type="text" wire:model="items.{{ $index }}.item_name"
+                                        <input type="text"
+                                            wire:model.live.debounce.300ms="items.{{ $index }}.item_name"
                                             class="w-full uppercase text-lg font-medium border-b-2 border-orange-300 focus:border-orange-500 focus:ring-0 px-1 py-1 bg-orange-50 outline-none transition"
                                             placeholder="Keterangan barang...">
                                     @else
@@ -250,7 +251,7 @@
                         </div>
                         <button wire:click="resubmit" wire:loading.attr="disabled"
                             class="px-6 py-2.5 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 shadow-md transition active:scale-95 flex items-center gap-2">
-                            <span wire:loading.remove wire:target="resubmit">🚀 Perbarui & Ajukan Ulang</span>
+                            <span wire:loading.remove wire:target="resubmit">Perbarui & Ajukan Ulang</span>
                             <span wire:loading wire:target="resubmit">Menyimpan...</span>
                         </button>
                     </div>
