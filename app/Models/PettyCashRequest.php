@@ -33,6 +33,7 @@ class PettyCashRequest extends Model
         'klinik_approved_at',
         'rejected_by',
         'rejected_note',
+        'last_status'
     ];
 
     protected $casts = [

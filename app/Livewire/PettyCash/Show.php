@@ -235,6 +235,7 @@ class Show extends Component
             'revisionReason.min' => 'Catatan revisi terlalu pendek (minimal 5 karakter).'
         ]);
 
+        $this->request->last_status = $this->request->status;
         $this->request->status = \App\Enums\PettyCashStatus::REVISION;
         $this->request->rejected_by = auth()->id();
         $this->request->rejection_note = $this->revisionReason;
@@ -316,16 +317,13 @@ class Show extends Component
             }
         }
 
-        $nextStatus = $this->request->approver_id
+        $nextStatus = $this->request->last_status ?: ($this->request->approver_id
             ? \App\Enums\PettyCashStatus::PENDING_SUPERVISOR
-            : \App\Enums\PettyCashStatus::PENDING_MANAGER;
-
+            : \App\Enums\PettyCashStatus::PENDING_MANAGER);
         $this->request->update([
             'amount' => $totalAmount,
             'status' => $nextStatus,
-            'supervisor_approved_at' => null,
-            'manager_approved_at' => null,
-            'director_approved_at' => null,
+            'last_status' => null,
             'rejection_note' => null,
             'rejected_by' => null,
         ]);
