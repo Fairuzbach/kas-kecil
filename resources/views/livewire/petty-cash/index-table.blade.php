@@ -2,17 +2,33 @@
     <div class="p-4 sm:p-6 text-gray-900">
 
         {{-- Header Section --}}
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h3 class="text-lg font-bold">Riwayat Pengajuan</h3>
-            <button wire:click="$refresh"
-                class="text-sm text-gray-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                    </path>
-                </svg>
-                <span class="hidden sm:inline font-medium">Refresh Data</span>
-            </button>
+
+            <div class="flex items-center gap-3">
+                {{-- Tombol Laporan Mingguan Khusus Finance/Kasir --}}
+                @if (in_array(auth()->user()->role, ['finance', 'cashier']))
+                    <a href="{{ route('petty-cash.reconciliation') }}" wire:navigate
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 transition active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        Singkronisasi Laporan
+                    </a>
+                @endif
+
+                <button wire:click="$refresh"
+                    class="text-sm text-gray-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                    <span class="hidden sm:inline font-medium">Refresh Data</span>
+                </button>
+            </div>
         </div>
 
         {{-- ========================================== --}}
@@ -26,6 +42,7 @@
                         <th class="border border-gray-200 px-4 py-3">REF NO.</th>
                         <th class="border border-gray-200 px-4 py-3">TANGGAL</th>
                         <th class="border border-gray-200 px-4 py-3">PEMOHON</th>
+                        <th class="border border-gray-200 px-4 py-3">DEPT</th>
                         <th class="border border-gray-200 px-4 py-3">DIBAYAR KEPADA</th>
                         <th class="border border-gray-200 px-4 py-3 text-right">TOTAL</th>
                         <th class="border border-gray-200 px-4 py-3 text-center">STATUS</th>
@@ -63,6 +80,16 @@
                             </td>
                             <td class="border-x border-gray-200 px-4 py-3 font-medium text-gray-900">
                                 {{ $req->user->name }}
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                @if ($req->department)
+                                    <span
+                                        class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 uppercase tracking-wider">
+                                        {{ $req->department->code }}
+                                    </span>
+                                @else
+                                    <span class="text-[10px] text-gray-400 italic">-</span>
+                                @endif
                             </td>
                             <td class="border-x border-gray-200 px-4 py-3 text-gray-800 uppercase text-xs font-bold">
                                 {{ Str::limit($req->title, 30) }}
@@ -104,7 +131,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-10 bg-gray-50 border border-gray-200">
+                            <td colspan="9" class="text-center py-10 bg-gray-50 border border-gray-200">
                                 <div class="flex flex-col items-center justify-center text-gray-500">
                                     <svg class="w-10 h-10 mb-2 text-gray-400" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
