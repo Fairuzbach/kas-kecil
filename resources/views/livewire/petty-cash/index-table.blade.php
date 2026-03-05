@@ -106,7 +106,7 @@
                                         $isMismatch = $ocrTotal > 0 && abs($ocrTotal - $req->amount) >= 0.01;
                                     @endphp
 
-                                    @if ($isMismatch && in_array(auth()->user()->role, ['finance', 'manager', 'director']))
+                                    @if ($isMismatch && in_array(auth()->user()->role, ['finance']))
                                         <span
                                             class="text-[9px] text-red-700 bg-red-100 px-1.5 py-0.5 rounded border border-red-300 mt-1 shadow-sm font-bold animate-pulse"
                                             title="Scan Asli: Rp {{ number_format($ocrTotal, 0, ',', '.') }}">

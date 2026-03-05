@@ -222,7 +222,7 @@
                                     </div>
 
                                     {{-- PERINGATAN HANYA DI GRAND TOTAL --}}
-                                    @if (in_array(auth()->user()->role, ['finance', 'manager', 'director']))
+                                    @if (in_array(auth()->user()->role, ['finance']))
                                         @php
                                             // Mengambil nilai scan dari item pertama saja (Grand Total Hasil OCR)
                                             $firstItem = $request->details->first();
