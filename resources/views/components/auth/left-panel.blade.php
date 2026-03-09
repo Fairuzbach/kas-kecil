@@ -1,5 +1,5 @@
 <style>
-    /* CSS Khusus untuk Info Login & Animasi Hover Password */
+    /* CSS Khusus untuk Info Login */
     .lp-login-info {
         display: flex;
         flex-direction: column;
@@ -51,56 +51,31 @@
         line-height: 1.6;
     }
 
-    /* ── ANIMASI HOVER PASSWORD ── */
-    .pwd-reveal-box {
-        position: relative;
-        margin-top: 0.6rem;
-        display: inline-block;
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px dashed rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-        overflow: hidden;
-        cursor: pointer;
-    }
-
-    .pwd-secret {
-        padding: 0.5rem 1.2rem;
-        font-family: monospace;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--yellow);
-        letter-spacing: 2px;
-        filter: blur(6px);
-        /* Memblur teks secara default */
-        opacity: 0.5;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .pwd-overlay {
-        position: absolute;
-        inset: 0;
-        display: flex;
+    /* ── LUPA PASSWORD LINK ── */
+    .forgot-link {
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
         gap: 0.4rem;
-        background: rgba(255, 255, 255, 0.05);
-        color: #fff;
-        font-size: 0.7rem;
+        margin-top: 0.5rem;
+        padding: 0.45rem 0.9rem;
+        background: rgba(245, 194, 0, 0.1);
+        border: 1px solid rgba(245, 194, 0, 0.25);
+        border-radius: 8px;
+        color: var(--yellow);
+        font-size: 0.75rem;
         font-weight: 600;
-        transition: opacity 0.3s ease;
-        z-index: 2;
+        text-decoration: none;
+        width: fit-content;
+        transition: background 0.2s ease, border-color 0.2s ease;
     }
 
-    /* Saat user melakukan Hover */
-    .pwd-reveal-box:hover .pwd-overlay {
-        opacity: 0;
-        /* Sembunyikan tulisan overlay */
+    .forgot-link:hover {
+        background: rgba(245, 194, 0, 0.18);
+        border-color: rgba(245, 194, 0, 0.45);
     }
 
-    .pwd-reveal-box:hover .pwd-secret {
-        filter: blur(0);
-        /* Perjelas teks password */
-        opacity: 1;
+    .forgot-link svg {
+        flex-shrink: 0;
     }
 </style>
 
@@ -135,7 +110,7 @@
             </p>
         </div>
 
-        {{-- BOX PANDUAN LOGIN BARU --}}
+        {{-- BOX PANDUAN LOGIN --}}
         <div class="lp-login-info">
             <div class="info-step">
                 <div class="info-icon">1</div>
@@ -148,23 +123,32 @@
             <div class="info-step">
                 <div class="info-icon">2</div>
                 <div class="info-text">
-                    <strong>Password Default</strong>
-                    <span>Jika ini login pertama Anda, silakan gunakan password bawaan sistem berikut:</span>
+                    <strong>Lupa Password?</strong>
+                    <span>Hubungi admin untuk mereset password Anda. Klik tombol di bawah ini.</span>
 
-                    {{-- Interaksi Hover Password --}}
-                    <div class="pwd-reveal-box">
-                        <div class="pwd-overlay">
-                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            Hover untuk lihat
-                        </div>
-                        <div class="pwd-secret">password123</div>
-                    </div>
+                    @php
+                        // 1. Ganti dengan nomor WhatsApp Anda (Gunakan awalan 62, tanpa 0 atau +)
+                        $waNumber = '6285156469296';
+
+                        // 2. Format pesan form yang akan otomatis muncul di WA user
+                        $waMessage =
+                            'Halo Admin, saya lupa password akun Finance Portal saya. Berikut data untuk reset password:%0A%0A' .
+                            'Nama Lengkap : %0A' .
+                            'NIK : %0A' .
+                            'Departemen : %0A%0A' .
+                            'Mohon bantuannya. Terima kasih.';
+
+                        $waLink = "https://wa.me/{$waNumber}?text={$waMessage}";
+                    @endphp
+
+                    <a href="{{ $waLink }}" target="_blank" class="forgot-link">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                        </svg>
+                        Lupa Password?
+                    </a>
                 </div>
             </div>
         </div>
