@@ -52,20 +52,19 @@ class IndexTable extends Component
             });
         } elseif ($user->role === 'manager') {
             $query->where(function ($q) use ($user) {
-
                 // 1. Tiket milik sendiri (Bisa lihat SEMUA status, termasuk Draft)
                 $q->where('user_id', $user->id)
-
                     // 2. ATAU Tiket staf departemen (Hanya status tertentu)
                     ->orWhere(function ($subQ) use ($user) {
                         $subQ->where('department_id', $user->department_id)
                             ->whereIn('status', [
-                                \App\Enums\PettyCashStatus::PENDING_MANAGER, // Inbox (Perlu diapprove)
-                                \App\Enums\PettyCashStatus::PENDING_DIRECTOR, // Monitoring
-                                \App\Enums\PettyCashStatus::PENDING_FINANCE, // Monitoring
+                                \App\Enums\PettyCashStatus::PENDING_MANAGER,
+                                \App\Enums\PettyCashStatus::PENDING_DIRECTOR,
+                                \App\Enums\PettyCashStatus::PENDING_FINANCE,
                                 \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
-                                \App\Enums\PettyCashStatus::PAID, // History Selesai
-                                \App\Enums\PettyCashStatus::REJECTED, // History Ditolak (Opsional)
+                                \App\Enums\PettyCashStatus::READY_FOR_INFOR,
+                                \App\Enums\PettyCashStatus::PAID,
+                                \App\Enums\PettyCashStatus::REJECTED,
                             ]);
                     });
             });
@@ -98,6 +97,7 @@ class IndexTable extends Component
                     \App\Enums\PettyCashStatus::PENDING_MANAGER,
                     \App\Enums\PettyCashStatus::PENDING_FINANCE,
                     \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
+                    \App\Enums\PettyCashStatus::READY_FOR_INFOR,
                     \App\Enums\PettyCashStatus::PAID
                 ]);
         } elseif ($user->role === 'finance') {
@@ -105,20 +105,19 @@ class IndexTable extends Component
                 $query->whereIn('status', [
                     \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
                     \App\Enums\PettyCashStatus::PENDING_FINANCE,
+                    \App\Enums\PettyCashStatus::READY_FOR_INFOR,
                     \App\Enums\PettyCashStatus::PAID,
                     \App\Enums\PettyCashStatus::REJECTED,
                 ]);
             } else {
                 $query->whereIn('status', [
-                    \App\Enums\PettyCashStatus::PENDING_FINANCE, // Inbox Utama Staff
-                    \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER, // History yg sdh dia forward
+                    \App\Enums\PettyCashStatus::PENDING_FINANCE,
+                    \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
+                    \App\Enums\PettyCashStatus::READY_FOR_INFOR,
                     \App\Enums\PettyCashStatus::PAID,
                     \App\Enums\PettyCashStatus::REJECTED,
                 ]);
             }
-        } else {
-            // Role User Biasa
-            $query->where('user_id', $user->id);
         }
 
         if ($this->search) {
@@ -142,5 +141,49 @@ class IndexTable extends Component
         return view('livewire.petty-cash.index-table', [
             'requests' => $requests
         ]);
+    }
+
+    public function exportToInfor()
+    {
+        $request = PettyCashRequest::with(['details.coa', 'department'])
+            ->where('status', \App\Enums\PettyCashStatus::READY_FOR_INFOR)
+            ->get();
+
+        if ($request->isEmpty()) {
+            session()->flash('error', 'Tidak ada data yang Siap Diupload Ke INFOR!');
+            return;
+        }
+
+        $fileName = 'INFOR_Upload_' . date('Ymd_His') . '.csv';
+
+        $headers = [
+            "Content-type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma" => "no_cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $columns = ['Tanggal', 'Ref_No', 'Account_Code', 'Dept_Code', 'Description', 'Amount', 'D_C'];
+        $callback = function () use ($request, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            foreach ($request as $req) {
+                foreach ($req->details as $details) {
+                    $row = [
+                        $req->created_at->format('Y-m-d'),
+                        $req->tracking_number,
+                        $details->coa ? $details->coa->code : '',
+                        $req->department ? $req->department->code : '',
+                        $details->item_name,
+                        $details->amount,
+                        'D'
+                    ];
+                    fputcsv($file, $row);
+                }
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
     }
 }

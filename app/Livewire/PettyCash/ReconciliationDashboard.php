@@ -61,36 +61,60 @@ class ReconciliationDashboard extends Component
     }
     public function syncAllToOcr()
     {
-        // 1. Ambil data pengajuan berdasarkan filter tanggal yang sedang aktif
-        // Sesuaikan "YourModelName" dengan nama model aslimu (misal: WorkOrder, ExpenseRequest, dll)
+        // 1. Ambil data pengajuan berdasarkan filter tanggal & status
         $requestsToSync = PettyCashRequest::with('details')
-            ->whereBetween('created_at', [$this->startDate, $this->endDate . ' 23:59:59'])
+            ->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay()
+            ])
+            ->whereIn('status', [
+                \App\Enums\PettyCashStatus::PENDING_FINANCE,
+                \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
+                \App\Enums\PettyCashStatus::READY_FOR_INFOR,
+                \App\Enums\PettyCashStatus::PAID,
+            ])
             ->get();
 
         $updatedCount = 0;
+        $skippedPphCount = 0; // 👈 Variabel baru untuk menghitung yang dilewati
 
-        // 2. Looping data untuk mencari yang selisih
+        // 2. Looping data
         foreach ($requestsToSync as $req) {
             $firstItem = $req->details->first();
             $ocrTotal = (float) ($firstItem->amount_ocr ?? 0);
             $currentTotal = (float) $req->amount;
 
-            $isMatched = $ocrTotal > 0 && abs($ocrTotal - $currentTotal) < 0.01;
+            $selisih = abs($ocrTotal - $currentTotal);
+            $isMatched = $ocrTotal > 0 && $selisih < 0.01;
             $hasNoOcr = $ocrTotal <= 0;
+
+            // Logika Pintar PPh 2%
+            $persentaseSelisih = $ocrTotal > 0 ? ($selisih / $ocrTotal) * 100 : 0;
+            $kemungkinanPph = $persentaseSelisih >= 1.8 && $persentaseSelisih <= 2.2;
 
             // Jika ADA hasil OCR dan nominalnya TIDAK SAMA (selisih)
             if (!$isMatched && !$hasNoOcr) {
-                // Update nominal input agar sesuai dengan OCR
-                $req->update([
-                    'amount' => $ocrTotal
-                ]);
-                $updatedCount++;
+
+                // Jika itu kemungkinan PPh, JANGAN di-update, catat saja dilewati
+                if ($kemungkinanPph) {
+                    $skippedPphCount++;
+                } else {
+                    // Jika murni salah input, lakukan update sinkronisasi
+                    $req->update(['amount' => $ocrTotal]);
+                    $updatedCount++;
+                }
             }
         }
 
-        // 3. Beri notifikasi ke user
-        if ($updatedCount > 0) {
-            session()->flash('success', "Berhasil menyinkronkan $updatedCount data dengan hasil OCR!");
+        // 3. Beri notifikasi dinamis ke user
+        if ($updatedCount > 0 || $skippedPphCount > 0) {
+            $pesan = "Berhasil menyinkronkan $updatedCount data dengan hasil OCR.";
+
+            if ($skippedPphCount > 0) {
+                $pesan .= " (Sistem melewati $skippedPphCount data karena terdeteksi sebagai potongan PPh 23).";
+            }
+
+            session()->flash('success', $pesan);
         } else {
             session()->flash('success', "Tidak ada data yang perlu disinkronkan.");
         }
@@ -104,9 +128,14 @@ class ReconciliationDashboard extends Component
                 Carbon::parse($this->startDate)->startOfDay(),
                 Carbon::parse($this->endDate)->endOfDay()
             ])
-            ->whereNotIn('status', ['draft'])
+            ->whereIn('status', [
+                \App\Enums\PettyCashStatus::PENDING_FINANCE,
+                \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER,
+                \App\Enums\PettyCashStatus::READY_FOR_INFOR,
+                \App\Enums\PettyCashStatus::PAID,
+            ])
             ->orderBy('created_at', 'desc')
-            ->get(); // Kita pakai get() dulu agar mudah direkap di Blade
+            ->get();
 
         return view('livewire.petty-cash.reconciliation-dashboard', [
             'requests' => $requests

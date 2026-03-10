@@ -190,11 +190,31 @@ class Show extends Component
             $this->showAcceptModal = false;
             return;
         }
-        $this->request->status = \App\Enums\PettyCashStatus::PAID;
+        $this->request->status = \App\Enums\PettyCashStatus::READY_FOR_INFOR;
         $this->request->save();
         $this->showAcceptModal = false;
-        session()->flash('success', 'Dana berhasil dibayar/dicairkan!');
+        session()->flash('success', 'Pengajuan telah disetujui oleh FA Manager dan siap diupload ke INFOR');
         return redirect()->route('dashboard');
+    }
+
+    public function uploadToInfor()
+    {
+        // Pastikan hanya user FA yang bisa melakukan ini
+        if (auth()->user()->role !== 'finance') {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Update status menjadi PAID (Selesai)
+        $this->request->update([
+            'status' => \App\Enums\PettyCashStatus::PAID, // 👈 Status akhir
+
+        ]);
+
+        // Tutup modal jika pakai modal
+        $this->showAcceptModal = false;
+
+        // Tampilkan notifikasi sukses
+        session()->flash('success', 'Berhasil! Data telah ditandai selesai dan diupload ke INFOR.');
     }
 
     public function confirmReject()
