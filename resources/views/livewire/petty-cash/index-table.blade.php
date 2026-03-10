@@ -7,6 +7,17 @@
 
             <div class="flex items-center gap-3">
                 {{-- Tombol Laporan Mingguan Khusus Finance/Kasir --}}
+                @if (in_array(auth()->user()->role, ['finance']))
+                    <button wire:click="exportToInfor" wire:loading.attr="disabled"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-teal-700 transition active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span wire:loading.remove wire:target="exportToInfor">Export INFOR (.csv)</span>
+                        <span wire:loading wire:target="exportToInfor">Mengekspor...</span>
+                    </button>
+                @endif
                 @if (in_array(auth()->user()->role, ['finance', 'cashier']))
                     <a href="{{ route('petty-cash.reconciliation') }}" wire:navigate
                         class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 transition active:scale-95">
@@ -62,6 +73,7 @@
                                 'pending_finance',
                                 'pending_finance_manager'
                                     => 'bg-blue-100 text-blue-800 border-blue-300',
+                                'ready_for_infor' => 'bg-teal-100 text-teal-800 border-teal-300',
                                 'revision' => 'bg-orange-100 text-orange-800 border-orange-300',
                                 'paid' => 'bg-green-100 text-green-800 border-green-300',
                                 'rejected' => 'bg-red-100 text-red-800 border-red-300',
@@ -159,6 +171,7 @@
                         'draft' => 'bg-gray-500',
                         'pending_supervisor', 'pending_manager', 'pending_director' => 'bg-yellow-500',
                         'pending_finance', 'pending_finance_manager' => 'bg-blue-500',
+                        'ready_for_infor' => 'bg-teal-100 text-teal-800 border-teal-300',
                         'revision' => 'bg-orange-500',
                         'paid' => 'bg-green-500',
                         'rejected' => 'bg-red-500',
@@ -173,6 +186,7 @@
                         'pending_director'
                             => 'bg-yellow-100 text-yellow-800 border-yellow-300',
                         'pending_finance', 'pending_finance_manager' => 'bg-blue-100 text-blue-800 border-blue-300',
+                        'ready_for_infor' => 'bg-teal-100 text-teal-800 border-teal-300',
                         'revision' => 'bg-orange-100 text-orange-800 border-orange-300',
                         'paid' => 'bg-green-100 text-green-800 border-green-300',
                         'rejected' => 'bg-red-100 text-red-800 border-red-300',
