@@ -263,7 +263,7 @@
                     {{-- Tombol Sync Semua OCR dengan Loading Animation --}}
                     <div class="pl-2 border-l border-gray-200">
                         <button wire:click="syncAllToOcr" wire:loading.attr="disabled" wire:target="syncAllToOcr"
-                            onclick="confirm('Yakin ingin menyinkronkan SEMUA data yang memiliki selisih OCR di periode ini?') || event.stopImmediatePropagation()"
+                            onclick="confirm('Yakin ingin menyinkronkan SEMUA data yang berselisih OCR di periode ini?\n\n💡 INFO: Jangan khawatir, sistem akan OTOMATIS MELEWATI data yang terdeteksi memiliki potongan PPh 23 (selisih 2%) agar pajak tidak hilang.') || event.stopImmediatePropagation()"
                             class="btn-sync inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 border border-transparent text-white rounded-lg hover:bg-indigo-700 text-sm font-bold shadow-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200">
 
                             {{-- Icon Default (Sembunyi saat loading) --}}
@@ -313,9 +313,12 @@
                                     $firstItem = $req->details->first();
                                     $ocrTotal = (float) ($firstItem->amount_ocr ?? 0);
                                     $currentTotal = (float) $req->amount;
-
-                                    $isMatched = $ocrTotal > 0 && abs($ocrTotal - $currentTotal) < 0.01;
+                                    $selisih = abs($ocrTotal - $currentTotal);
+                                    $isMatched = $ocrTotal > 0 && $selisih < 0.01;
                                     $hasNoOcr = $ocrTotal <= 0;
+                                    $persentaseSelisih = $ocrTotal > 0 ? ($selisih / $ocrTotal) * 100 : 0;
+                                    $kemungkinanPph = $persentaseSelisih >= 1.8 && $persentaseSelisih <= 2.2;
+
                                     $attachmentUrl = $req->attachment ? asset('storage/' . $req->attachment) : null;
                                 @endphp
 
@@ -369,13 +372,24 @@
                                                 ✅ SINKRON
                                             </span>
                                         @else
-                                            <span
-                                                class="badge-pop badge-glow inline-flex items-center gap-1 bg-red-50 text-red-700 px-2.5 py-1 rounded border border-red-200 text-xs font-bold animate-pulse">
-                                                ❌ SELISIH
-                                            </span>
-                                            <div class="text-[10px] text-red-500 mt-1 font-mono">
-                                                (- Rp {{ number_format(abs($ocrTotal - $currentTotal), 0, ',', '.') }})
-                                            </div>
+                                            @if ($kemungkinanPph)
+                                                <span
+                                                    class="badge-pop inline-flex items-center gap-1 bg-orange-50 text-orange-700 px-2.5 py-1 rounded border border-orange-300 text-xs font-bold"
+                                                    title="Kemungkinan potongan PPh 23">
+                                                    💡 INFO PPh 2%
+                                                </span>
+                                                <div class="text-[10px] text-orange-600 mt-1 font-mono font-bold">
+                                                    Selisih: Rp {{ number_format($selisih, 0, ',', '.') }}
+                                                </div>
+                                            @else
+                                                <span
+                                                    class="badge-pop badge-glow inline-flex items-center gap-1 bg-red-50 text-red-700 px-2.5 py-1 rounded border border-red-200 text-xs font-bold animate-pulse">
+                                                    ❌ SELISIH
+                                                </span>
+                                                <div class="text-[10px] text-red-500 mt-1 font-mono">
+                                                    (- Rp {{ number_format($selisih, 0, ',', '.') }})
+                                                </div>
+                                            @endif
                                         @endif
                                     </td>
 
@@ -403,8 +417,8 @@
 
                                         @if (!$isMatched && !$hasNoOcr)
                                             <button wire:click="syncToOcr({{ $req->id }})"
-                                                onclick="confirm('Yakin ingin mengubah nominal input pemohon menjadi Rp {{ number_format($ocrTotal, 0, ',', '.') }} sesuai hasil Scan?') || event.stopImmediatePropagation()"
-                                                class="btn-sync inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 border border-transparent text-white rounded-lg hover:bg-indigo-700 text-xs font-bold shadow-sm">
+                                                onclick="confirm('Yakin ingin mengubah nominal input menjadi Rp {{ number_format($ocrTotal, 0, ',', '.') }}?{{ $kemungkinanPph ? '\n\n⚠️ PERHATIAN: Sistem mendeteksi selisih ini sebagai potongan PPh 23. Jika Anda melanjutkan Sinkronisasi, potongan pajak yang sudah diinput user akan tertimpa dan hilang!' : '' }}') || event.stopImmediatePropagation()"
+                                                class="btn-sync inline-flex items-center gap-1 px-3 py-1.5 {{ $kemungkinanPph ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-600 hover:bg-indigo-700' }} border border-transparent text-white rounded-lg text-xs font-bold shadow-sm">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
