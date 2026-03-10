@@ -6,7 +6,7 @@
         {{-- =========================== --}}
         {{-- 1. HEADER & FILTER SECTION --}}
         {{-- =========================== --}}
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div class="bg-white p-6 rounded-none shadow-sm border border-gray-200">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -15,11 +15,11 @@
                     <p class="text-sm text-gray-500 mt-1">Monitoring arus kas dan pengeluaran per departemen</p>
                 </div>
 
-                <div class="flex flex-wrap gap-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <div class="flex flex-wrap gap-3 bg-gray-50 p-2 rounded-none border border-gray-100">
                     {{-- Filter Tahun --}}
                     <div>
                         <select wire:model.live="year"
-                            class="block w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm py-2 pl-3 pr-10">
+                            class="block w-full rounded-none border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm py-2 pl-3 pr-10">
                             @for ($y = date('Y'); $y >= date('Y') - 3; $y--)
                                 <option value="{{ $y }}">{{ $y }}</option>
                             @endfor
@@ -29,7 +29,7 @@
                     {{-- Filter Periode --}}
                     <div>
                         <select wire:model.live="period"
-                            class="block w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm py-2 pl-3 pr-10">
+                            class="block w-full rounded-none border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm py-2 pl-3 pr-10">
                             <option value="weekly">Mingguan</option>
                             <option value="monthly">Bulanan</option>
                             <option value="quarterly">Per Kuartal</option>
@@ -41,7 +41,7 @@
                     {{-- Filter Departemen --}}
                     <div>
                         <select wire:model.live="department_id"
-                            class="block w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm py-2 pl-3 pr-10">
+                            class="block w-full rounded-none border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm py-2 pl-3 pr-10">
                             <option value="all">Semua Departemen</option>
                             @foreach ($departments as $dept)
                                 <option value="{{ $dept->id }}">{{ $dept->name }}</option>
@@ -59,7 +59,7 @@
 
             {{-- CARD 1: TOTAL REALISASI (Gradient Blue) --}}
             <div
-                class="bg-gradient-to-br from-indigo-600 to-blue-700 p-6 rounded-xl shadow-lg text-white relative overflow-hidden group">
+                class="bg-gradient-to-br from-indigo-600 to-blue-700 p-6  shadow-lg text-white relative overflow-hidden group">
                 <div class="relative z-10">
                     <div class="flex justify-between items-start">
                         <div>
@@ -69,7 +69,7 @@
                                 Rp {{ number_format($totalExpense, 0, ',', '.') }}
                             </h3>
                         </div>
-                        <div class="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                        <div class="p-2 bg-white/10 rounded-none backdrop-blur-sm">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
@@ -96,7 +96,7 @@
             </div>
 
             {{-- CARD 2: DEPARTEMEN TERBOROS (White with Red Accent) --}}
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative overflow-hidden">
+            <div class="bg-white p-6  shadow-sm border border-gray-200 relative overflow-hidden">
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <p class="text-gray-500 text-xs uppercase font-bold tracking-wider flex items-center gap-1">
@@ -142,7 +142,7 @@
 
             {{-- CARD 3: INFO TAMBAHAN (Opsional - Agar Grid Rapi) --}}
             <div
-                class="hidden md:flex flex-col justify-center bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300 text-center">
+                class="hidden md:flex flex-col justify-center bg-gray-50 p-6  border border-dashed border-gray-300 text-center">
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Status Dashboard</p>
                 <div class="mt-2 flex items-center justify-center gap-2">
                     <span class="relative flex h-3 w-3">
@@ -163,10 +163,10 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {{-- CHART KIRI: TREND (Lebar 2/3) --}}
-            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="lg:col-span-2 bg-white p-6  shadow-sm border border-gray-200">
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="font-bold text-gray-800 flex items-center gap-2">
-                        <span class="bg-indigo-100 text-indigo-600 p-1.5 rounded-lg">
+                        <span class="bg-indigo-100 text-indigo-600 p-1.5 rounded-none">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
@@ -182,10 +182,10 @@
             </div>
 
             {{-- CHART KANAN: TOP 10 COA (Lebar 1/3) --}}
-            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="lg:col-span-1 bg-white p-6  shadow-sm border border-gray-200">
                 <div class="mb-6">
                     <h3 class="font-bold text-gray-800 flex items-center gap-2">
-                        <span class="bg-yellow-100 text-yellow-600 p-1.5 rounded-lg">
+                        <span class="bg-yellow-100 text-yellow-600 p-1.5 rounded-none">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z">

@@ -28,7 +28,7 @@
                     class="inline-flex items-center justify-center gap-2 w-full sm:w-auto
                            bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
                            text-white text-sm font-semibold
-                           px-5 py-2.5 rounded-xl
+                           px-5 py-2.5 rounded-none
                            shadow-md shadow-indigo-200
                            transition-all duration-150 active:scale-95">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
