@@ -224,26 +224,37 @@
                                     {{-- PERINGATAN HANYA DI GRAND TOTAL --}}
                                     @if (in_array(auth()->user()->role, ['finance']))
                                         @php
-                                            // Mengambil nilai scan dari item pertama saja (Grand Total Hasil OCR)
                                             $firstItem = $request->details->first();
                                             $ocrTotal = (float) ($firstItem->amount_ocr ?? 0);
-
                                             $currentTotal = (float) ($canEdit
                                                 ? collect($items)->sum('amount')
                                                 : $request->amount);
-                                            $isMismatch = $ocrTotal > 0 && abs($ocrTotal - $currentTotal) > 0.01;
+                                            $selisih = abs($ocrTotal - $currentTotal);
+                                            $isMismatch = $ocrTotal > 0 && $selisih > 0.01;
+                                            $persentaseSelisih = $ocrTotal > 0 ? ($selisih / $ocrTotal) * 100 : 0;
+                                            $kemungkinanPph = $persentaseSelisih >= 1.8 && $persentaseSelisih <= 2.2;
                                         @endphp
 
                                         @if ($isMismatch)
                                             <div
-                                                class="mt-2 p-2 bg-white border border-red-400 rounded shadow-sm print:hidden">
+                                                class="mt-2 p-2 bg-white border {{ $kemungkinanPph ? 'border-orange-400' : 'border-red-400' }} rounded shadow-sm print:hidden">
                                                 <div
-                                                    class="text-[10px] text-red-700 font-black uppercase flex items-center gap-1 animate-pulse">
+                                                    class="text-[10px] {{ $kemungkinanPph ? 'text-orange-700' : 'text-red-700' }} font-black uppercase flex items-center gap-1 animate-pulse">
                                                     ⚠️ Selisih dengan Bukti Scan
                                                 </div>
-                                                <div class="text-xs text-red-600 font-mono font-bold">
+                                                <div
+                                                    class="text-xs {{ $kemungkinanPph ? 'text-orange-600' : 'text-red-600' }} font-mono font-bold">
                                                     Hasil Scan: Rp {{ number_format($ocrTotal, 0, ',', '.') }}
                                                 </div>
+
+                                                {{-- Pesan Khusus Jika Terdeteksi PPh 2% --}}
+                                                @if ($kemungkinanPph)
+                                                    <div
+                                                        class="text-[9px] text-orange-800 bg-orange-100 px-1 py-1 rounded mt-1.5 font-bold leading-tight border border-orange-200">
+                                                        💡 INFO: Selisih sekitar 2%. Kemungkinan berasal dari potongan
+                                                        PPh 23 yang tidak tercetak di invoice/lampiran.
+                                                    </div>
+                                                @endif
                                             </div>
                                         @elseif($ocrTotal > 0)
                                             <div class="mt-2 text-right print:hidden">
@@ -319,7 +330,7 @@
                     $user->role === 'finance' &&
                     $userLevel !== 'manager'
                 ) {
-                    // STAFF FINANCE
+                    // STAFF FA
                     $isApprover = true;
                     $method = 'verifyCoa';
                 } elseif (
@@ -327,9 +338,13 @@
                     $user->role === 'finance' &&
                     $userLevel === 'manager'
                 ) {
-                    // FINANCE MANAGER
+                    // FA MANAGER
                     $isApprover = true;
                     $method = 'approveFinance';
+                } elseif ($request->status->value === 'ready_for_infor' && $user->role === 'finance') {
+                    // 👈 LOGIKA BARU: STAFF FA (Atau siapa saja di finance) UPLOAD KE INFOR
+                    $isApprover = true;
+                    $method = 'uploadToInfor';
                 }
             @endphp
 
@@ -378,7 +393,9 @@
                                             @if ($request->status->value === 'pending_finance')
                                                 Verifikasi COA
                                             @elseif ($request->status->value === 'pending_finance_manager')
-                                                Cairkan Dana
+                                                Setujui (Lanjut ke INFOR)
+                                            @elseif ($request->status->value === 'ready_for_infor')
+                                                Selesai (Telah di INFOR)
                                             @else
                                                 Setujui
                                             @endif

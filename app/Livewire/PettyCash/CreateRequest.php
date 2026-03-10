@@ -37,6 +37,8 @@ class CreateRequest extends Component
     public $tracking_number;
     public $dibayar_kepada;
     public $is_ocr_scanned = false;
+    public $selected_nik;
+    public $ocr_total = 0;
 
 
 
@@ -92,13 +94,14 @@ class CreateRequest extends Component
             }
             $cleanText = preg_replace('/[^0-9]/', '', $filtered);
             if (!empty($cleanText) && (float)$cleanText > 0) {
-                $this->items[$itemIndex]['amount'] = (float) $cleanText;
-                $this->items[$itemIndex]['amount_ocr'] = (float) $cleanText;
-                $this->calculateTotal();
+                $this->ocr_total = (float) $cleanText;
+                if (isset($this->items[0])) {
+                    $this->items[0]['amount_ocr'] = (float) $cleanText;
+                }
                 $this->is_ocr_scanned = true;
                 $this->dispatch('swal', [
                     'title' => 'Berhasil! 🎉',
-                    'text'  => 'Nominal terbaca: Rp ' . number_format((float)$cleanText, 0, ',', '.'),
+                    'text'  => 'Grand Total terbaca: Rp ' . number_format((float)$cleanText, 0, ',', '.'),
                     'icon'  => 'success'
                 ]);
             } else {
@@ -393,8 +396,8 @@ class CreateRequest extends Component
         }
 
         // 5. Mapping ID Pajak (Lakukan SETELAH validasi agar data DB aman)
-        $ppnCoa = \App\Models\Coa::where('code', '2101')->first();
-        $pphCoa = \App\Models\Coa::where('code', '2102')->first();
+        $ppnCoa = \App\Models\Coa::where('code', '115105')->first();
+        $pphCoa = \App\Models\Coa::where('code', '211402')->first();
 
         $cleanedItems = collect($this->items)->map(function ($item) use ($ppnCoa, $pphCoa) {
             $finalCoaId = $item['coa_id'];
@@ -437,10 +440,6 @@ class CreateRequest extends Component
         session()->flash('success', ($status === 'draft') ? 'Disimpan sebagai Draft.' : 'Pengajuan berhasil dibuat!');
         return redirect()->route('dashboard');
     }
-    public function details()
-    {
-        return $this->hasMany(PettyCashDetail::class);
-    }
 
     public function render()
     {
@@ -453,9 +452,14 @@ class CreateRequest extends Component
             ->orDoesntHave('departments')
             ->orderBy('code')
             ->get();
+        $taxCoas = \App\Models\Coa::where('name', 'LIKE', '%PPN%')
+            ->orWhere('name', 'LIKE', '%PPh%')
+            ->orderBy('code')
+            ->get();
 
         return view('livewire.petty-cash.create-request', [
             'coas' => $filteredCoas,
+            'taxCoas' => $taxCoas,
             'types' => \App\Enums\PettyCashType::cases(),
         ])->layout('layouts.app');
     }

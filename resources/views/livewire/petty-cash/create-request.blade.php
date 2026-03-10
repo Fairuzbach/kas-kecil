@@ -4,13 +4,13 @@
 @endassets
 <div class="bg-gray-50 py-4 px-2 sm:px-4 font-sans text-black">
     {{-- PANEL DIGITAL (Hanya tampil di layar, sembunyi saat print) --}}
-    <div class="w-full bg-white p-4 rounded-t-xl shadow-sm border-b-4 border-indigo-500 mb-4 print:hidden">
+    <div class="w-full bg-white p-4 rounded-none shadow-sm border-b-4 border-indigo-500 mb-4 print:hidden">
         <h3 class="text-base font-bold text-gray-800 mb-3">⚙️ Pengaturan Pengajuan (Digital)</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Tipe Pengajuan</label>
                 <select wire:model.live="type"
-                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2">
+                    class="block w-full rounded-none border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2">
                     <option value="">-- Pilih Jenis --</option>
                     @foreach (\App\Enums\PettyCashType::cases() as $type)
                         <option value="{{ $type->value }}" {{ $type->value === 'pengobatan' ? 'disabled' : '' }}>
@@ -26,7 +26,7 @@
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Upload Lampiran (Struk/Nota)</label>
                 <input type="file" wire:model.live="attachment" accept="image/*, application/pdf"
-                    class="w-full text-xs text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    class="w-full text-xs text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 <div wire:loading wire:target="attachment" class="text-xs text-blue-600 mt-1 animate-pulse">Mengunggah
                     file...</div>
                 @error('attachment')
@@ -48,13 +48,13 @@
                         @if (!$is_ocr_scanned)
                             <button type="button"
                                 onclick="window.dispatchEvent(new CustomEvent('open-ocr', { detail: { index: 0, url: '{{ $attachment->temporaryUrl() }}', ext: '{{ strtolower($attachment->extension()) }}' } }))"
-                                class="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700 flex items-center gap-1 transition shadow-sm whitespace-nowrap animate-pulse">
+                                class="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-none hover:bg-red-700 flex items-center gap-1 transition shadow-sm whitespace-nowrap animate-pulse">
                                 🔍 Lakukan Scan
                             </button>
                         @else
                             <button type="button"
                                 onclick="window.dispatchEvent(new CustomEvent('open-ocr', { detail: { index: 0, url: '{{ $attachment->temporaryUrl() }}', ext: '{{ strtolower($attachment->extension()) }}' } }))"
-                                class="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700 flex items-center gap-1 transition shadow-sm whitespace-nowrap">
+                                class="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-none hover:bg-green-700 flex items-center gap-1 transition shadow-sm whitespace-nowrap">
                                 🔄 Scan Ulang
                             </button>
                         @endif
@@ -152,7 +152,7 @@
                                                 @foreach ($suggestedCoas[$index] as $key => $suggestion)
                                                     <button type="button"
                                                         wire:click="applySuggestion({{ $index }}, '{{ $suggestion['id'] }}')"
-                                                        class="suggestion-item w-full text-left px-2 py-1.5 bg-white border border-blue-100 hover:bg-blue-100 hover:border-blue-300 text-blue-800 rounded transition-all duration-150 hover:pl-3 shadow-sm"
+                                                        class="suggestion-item w-full text-left px-2 py-1.5 bg-white border border-blue-100 hover:bg-blue-100 hover:border-blue-300 text-blue-800 rounded-none transition-all duration-150 hover:pl-3 shadow-sm"
                                                         style="animation: fadeSlideIn 0.2s ease both; animation-delay: {{ $key * 40 }}ms;">
 
                                                         <div class="font-bold text-xs">
@@ -227,13 +227,13 @@
                                 <div class="flex gap-1 mb-1">
                                     <button type="button" wire:click="addTax({{ $index }}, 'ppn')"
                                         title="Tambah PPN 11%"
-                                        class="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-bold py-1 rounded">+PPN</button>
+                                        class="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-bold py-1 rounded-none">+PPN</button>
                                     <button type="button" wire:click="addTax({{ $index }}, 'pph23')"
                                         title="Potong PPh 23 (2%)"
-                                        class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold py-1 rounded">-PPh</button>
+                                        class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold py-1 rounded-none">-PPh</button>
                                 </div>
                                 <button type="button" wire:click="removeItem({{ $index }})"
-                                    class="w-full text-red-500 hover:text-red-700 text-[10px] font-bold py-1 border border-red-200 rounded">Hapus</button>
+                                    class="w-full text-red-500 hover:text-red-700 text-[10px] font-bold py-1 border border-red-200 rounded-none">Hapus</button>
                             </td>
                         </tr>
                     @endforeach
@@ -242,16 +242,27 @@
                     <tr class="print:hidden">
                         <td colspan="6" class="border border-black bg-gray-50 p-2">
                             <button type="button" wire:click="addItem"
-                                class="w-full border-2 border-dashed border-gray-400 text-gray-600 font-bold py-2 rounded-md hover:bg-gray-100 hover:border-gray-600 transition text-xs">
+                                class="w-full border-2 border-dashed border-gray-400 text-gray-600 font-bold py-2 rounded-none hover:bg-gray-100 hover:border-gray-600 transition text-xs">
                                 + Tambah Baris Rincian
                             </button>
                         </td>
                     </tr>
                     <tr class="bg-gray-50">
 
-                        <td colspan="4"
-                            class="border border-black px-3 py-2 text-right font-bold tracking-widest text-sm">
-                            Total
+                        <td class="border border-black px-2 py-2 font-bold bg-gray-200 text-sm">
+                            <div class="flex flex-col w-full">
+                                <div class="flex justify-between items-center w-full">
+                                    <span>Rp.</span>
+                                    <span>{{ number_format($total ?? 0, 0, ',', '.') }}.-</span>
+                                </div>
+
+                                {{-- Tambahan Info OCR untuk Pemohon --}}
+                                @if ($is_ocr_scanned && $ocr_total > 0)
+                                    <div class="text-[10px] text-green-700 mt-1 border-t border-gray-400 pt-1">
+                                        ✓ Scan OCR: Rp {{ number_format($ocr_total, 0, ',', '.') }}
+                                    </div>
+                                @endif
+                            </div>
                         </td>
                         <td class="border border-black px-2 py-2 font-bold bg-gray-200 text-sm">
                             <div class="flex justify-between items-center w-full">
@@ -316,7 +327,7 @@
     {{-- TOMBOL SUBMIT (Digital Only) --}}
     <div class="w-full mt-4 flex justify-end gap-3 print:hidden">
         <button type="button" onclick="window.print()"
-            class="px-4 py-2 bg-gray-600 text-white text-sm font-bold rounded-lg shadow hover:bg-gray-700 flex items-center gap-2">
+            class="px-4 py-2 bg-gray-600 text-white text-sm font-bold rounded-none shadow hover:bg-gray-700 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
@@ -325,7 +336,7 @@
             Print Draft
         </button>
         <button type="button" wire:click="save"
-            class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg shadow hover:bg-blue-700 flex items-center gap-2">
+            class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-none shadow hover:bg-blue-700 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
@@ -469,9 +480,9 @@
 
             <div class="p-4 bg-white flex justify-end gap-3 border-t">
                 <button @click="closeModal()"
-                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-bold">Batal</button>
+                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-none hover:bg-gray-200 font-bold">Batal</button>
                 <button @click="cropAndSend()" :disabled="isProcessing"
-                    class="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold flex items-center gap-2">
+                    class="px-6 py-2 bg-indigo-600 text-white rounded-none hover:bg-indigo-700 font-bold flex items-center gap-2">
                     <span x-show="!isProcessing">🔍 Ekstrak Angka</span>
                     <span x-show="isProcessing">Membaca...</span>
                 </button>
