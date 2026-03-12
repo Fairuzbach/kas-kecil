@@ -26,7 +26,7 @@
                                 d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                             </path>
                         </svg>
-                        Singkronisasi Laporan
+                        Rekonsiliasi Laporan
                     </a>
                 @endif
 
@@ -65,19 +65,17 @@
                         @php
                             // Tentukan warna status secara eksplisit agar terbaca Tailwind
                             $statusColor = match ($req->status->value) {
-                                'draft' => 'bg-gray-100 text-gray-700 border-gray-300',
-                                'pending_supervisor',
-                                'pending_manager',
-                                'pending_director'
-                                    => 'bg-yellow-100 text-yellow-800 border-yellow-300',
-                                'pending_finance',
-                                'pending_finance_manager'
-                                    => 'bg-blue-100 text-blue-800 border-blue-300',
-                                'ready_for_infor' => 'bg-teal-100 text-teal-800 border-teal-300',
-                                'revision' => 'bg-orange-100 text-orange-800 border-orange-300',
-                                'paid' => 'bg-green-100 text-green-800 border-green-300',
-                                'rejected' => 'bg-red-100 text-red-800 border-red-300',
-                                default => 'bg-gray-100 text-gray-700 border-gray-300',
+                                'draft' => 'bg-slate-200 text-slate-700 border-slate-400',
+                                'pending_supervisor' => 'bg-yellow-200 text-yellow-900 border-yellow-500',
+                                'pending_manager' => 'bg-orange-200 text-orange-900 border-orange-500',
+                                'pending_director' => 'bg-fuchsia-200 text-fuchsia-900 border-fuchsia-500',
+                                'pending_finance' => 'bg-cyan-200 text-cyan-900 border-cyan-500',
+                                'pending_finance_manager' => 'bg-violet-200 text-violet-900 border-violet-500',
+                                'ready_for_infor' => 'bg-teal-200 text-teal-900 border-teal-500',
+                                'revision' => 'bg-rose-200 text-rose-900 border-rose-500',
+                                'paid' => 'bg-emerald-200 text-emerald-900 border-emerald-500',
+                                'rejected' => 'bg-red-200 text-red-900 border-red-500',
+                                default => 'bg-slate-200 text-slate-700 border-slate-400',
                             };
                         @endphp
                         <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
