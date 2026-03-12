@@ -6,6 +6,9 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout;
 use App\Models\PettyCashDetail;
+use App\Models\PettyCashRequest;
+use App\Services\PettyCashService;
+use App\Services\PettyCashWhatsappService;
 use Illuminate\Support\Number;
 
 use thiagoalessio\TesseractOCR\TesseractOCR;
@@ -435,6 +438,11 @@ class CreateRequest extends Component
             'approver_id'      => $this->selected_approver_id,
             'status'           => $statusEnum,
         ], auth()->user());
+
+        $newRequest = PettyCashRequest::latest()->first();
+        if ($newRequest && $status !== 'draft') {
+            app(PettyCashWhatsappService::class)->notifyNextApprover($newRequest);
+        }
 
         // 9. Reset & Redirect
         session()->flash('success', ($status === 'draft') ? 'Disimpan sebagai Draft.' : 'Pengajuan berhasil dibuat!');

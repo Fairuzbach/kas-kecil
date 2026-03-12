@@ -5,6 +5,7 @@ namespace App\Livewire\PettyCash;
 use Livewire\Component;
 use App\Models\PettyCashRequest;
 use App\Enums\PettyCashStatus;
+use App\Services\PettyCashWhatsappService;
 use Illuminate\Support\Facades\Auth;
 
 class Show extends Component
@@ -44,15 +45,20 @@ class Show extends Component
 
     public function approveSupervisor()
     {
-        if (auth()->id() !== $this->request->approver_id) {
-            abort(403, 'Anda bukan approver yang dipilih oleh Requester.');
+        $this->showAcceptModal = false;
+        $user = auth()->user();
+        $isAssignedApprover = $user->id === $this->request->approver_id;
+        $isSameDeptSupervisor = $user->role === 'supervisor' && $user->department_id === $this->request->department_id;
+        if (!$isAssignedApprover && !$isSameDeptSupervisor) {
+            abort(403, 'Akses ditolak! Anda bukan Supervisor di departemen ini.');
         }
 
         $this->request->update([
             'status' => PettyCashStatus::PENDING_MANAGER,
-            'supervisor_approved_at' => now()
+            'supervisor_approved_at' => now(),
+            'approver_id' => $user->id
         ]);
-
+        app(PettyCashWhatsappService::class)->notifyNextApprover($this->request);
         $this->dispatch('swal', [
             'title' => 'Berhasil!',
             'text'  => 'Pengajuan akan diteruskan ke Manager.',
@@ -62,6 +68,7 @@ class Show extends Component
 
     public function approveManager()
     {
+        $this->showAcceptModal = false;
         if (auth()->user()->role !==  'manager') {
             abort(403);
         }
@@ -77,9 +84,9 @@ class Show extends Component
         $this->request->update([
             'status' => $nextStatus,
             'manager_approved_at' => now(),
-            'manager_id' => auth()->user(),
+            'manager_id' => auth()->id(),
         ]);
-
+        app(PettyCashWhatsappService::class)->notifyNextApprover($this->request);
         $this->dispatch('swal', [
             'title' => 'Berhasil!',
             'text'  => $message,
@@ -89,6 +96,7 @@ class Show extends Component
 
     public function approveDirector()
     {
+        $this->showAcceptModal = false;
         $user = auth()->user();
         if (auth()->user()->role !== 'director') {
             abort(403, 'Akses ditolak');
@@ -109,6 +117,7 @@ class Show extends Component
             'director_id' => $user->id,
         ]);
         $this->request->refresh();
+        app(PettyCashWhatsappService::class)->notifyNextApprover($this->request);
         $this->dispatch('swal', [
             'title' => 'Berhasil!',
             'text'  => 'Berhasil approve, akan diteruskan ke tim FA',
@@ -118,6 +127,7 @@ class Show extends Component
 
     public function approveKlinik()
     {
+        $this->showAcceptModal = false;
         if (auth()->user()->role !== 'klinik') {
             abort(403, 'Anda bukan petugas Klinik!');
         }
@@ -130,6 +140,7 @@ class Show extends Component
         $this->request->update([
             'status' => \App\Enums\PettyCashStatus::PENDING_HC,
         ]);
+        app(PettyCashWhatsappService::class)->notifyNextApprover($this->request);
         $this->dispatch('swal', [
             'title' => 'Berhasil!',
             'text'  => 'Berhasil approve, Akan diteruskan ke Tim HC',
@@ -139,6 +150,7 @@ class Show extends Component
 
     public function approveHC()
     {
+        $this->showAcceptModal = false;
         if (strtolower(auth()->user()->role) !== 'hc') {
             abort(403, 'Akses Ditolak. Anda bukan HC.');
         }
@@ -149,6 +161,7 @@ class Show extends Component
         $this->request->update([
             'status' => \App\Enums\PettyCashStatus::PENDING_FINANCE
         ]);
+        app(PettyCashWhatsappService::class)->notifyNextApprover($this->request);
         $this->dispatch('swal', [
             'title' => 'Berhasil!',
             'text'  => 'Berhasil Approve, akan diteruskan ke Tim FA',
@@ -157,19 +170,16 @@ class Show extends Component
     }
     public function verifyCoa()
     {
+        $this->showAcceptModal = false;
         $user = auth()->user();
         $userEmployee = \App\Models\Employee::where('nik', $user->nik)->first();
         $userLevel = $userEmployee ? strtolower($userEmployee->level) : '';
-
-        // Pastikan hanya staff finance (bukan manager) yang bisa akses
         if ($user->role !== 'finance' || $userLevel === 'manager') {
             abort(403, 'Akses ditolak.');
         }
-
-        // Ubah status ke Manager
         $this->request->status = \App\Enums\PettyCashStatus::PENDING_FINANCE_MANAGER;
         $this->request->save();
-
+        app(PettyCashWhatsappService::class)->notifyNextApprover($this->request);
         session()->flash('success', 'COA berhasil diverifikasi dan diteruskan ke Finance Manager.');
         return redirect()->route('dashboard');
     }
@@ -192,6 +202,7 @@ class Show extends Component
         }
         $this->request->status = \App\Enums\PettyCashStatus::READY_FOR_INFOR;
         $this->request->save();
+        app(PettyCashWhatsappService::class)->notifyRequester($this->request, 'ready_for_infor');
         $this->showAcceptModal = false;
         session()->flash('success', 'Pengajuan telah disetujui oleh FA Manager dan siap diupload ke INFOR');
         return redirect()->route('dashboard');
@@ -199,21 +210,15 @@ class Show extends Component
 
     public function uploadToInfor()
     {
-        // Pastikan hanya user FA yang bisa melakukan ini
         if (auth()->user()->role !== 'finance') {
             abort(403, 'Unauthorized action.');
         }
-
-        // Update status menjadi PAID (Selesai)
         $this->request->update([
-            'status' => \App\Enums\PettyCashStatus::PAID, // 👈 Status akhir
-
+            'status' => \App\Enums\PettyCashStatus::PAID,
         ]);
 
-        // Tutup modal jika pakai modal
         $this->showAcceptModal = false;
-
-        // Tampilkan notifikasi sukses
+        app(PettyCashWhatsappService::class)->notifyRequester($this->request, 'paid');
         session()->flash('success', 'Berhasil! Data telah ditandai selesai dan diupload ke INFOR.');
     }
 
@@ -226,18 +231,13 @@ class Show extends Component
         $this->validate([
             'rejectionReason' => 'required|string|min:5',
         ]);
-
-        // CARA MANUAL (MENGHINDARI ISU FILLABLE)
         $this->request->status = \App\Enums\PettyCashStatus::REJECTED;
         $this->request->rejected_by = auth()->id();
         $this->request->rejection_note = $this->rejectionReason;
-
-        // Simpan perubahan
         $this->request->save();
-
         $this->showRejectModal = false;
+        app(PettyCashWhatsappService::class)->notifyRequester($this->request, 'rejected', $this->rejectionReason);
         $this->rejectionReason = '';
-
         session()->flash('success', 'Pengajuan berhasil ditolak.');
     }
 
@@ -259,12 +259,10 @@ class Show extends Component
         $this->request->status = \App\Enums\PettyCashStatus::REVISION;
         $this->request->rejected_by = auth()->id();
         $this->request->rejection_note = $this->revisionReason;
-
         $this->request->save();
-
         $this->showRevisionModal = false;
+        app(PettyCashWhatsappService::class)->notifyRequester($this->request, 'revision', $this->revisionReason);
         $this->revisionReason = '';
-
         session()->flash('success', 'Pengajuan berhasil dikembalikan ke pemohon untuk direvisi.');
         return redirect()->route('dashboard');
     }
@@ -347,7 +345,7 @@ class Show extends Component
             'rejection_note' => null,
             'rejected_by' => null,
         ]);
-
+        app(PettyCashWhatsappService::class)->notifyNextApprover($this->request);
         session()->flash('success', 'Pengajuan berhasil diperbarui dan diajukan ulang ke Supervisor');
         return redirect()->route('dashboard');
     }
