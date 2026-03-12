@@ -45,16 +45,16 @@ class IndexTable extends Component
                     ->orWhere('department_id', $user->department_id);
             });
         } elseif ($user->role === 'supervisor') {
-            // SUPERVISOR: Lihat miliknya sendiri ATAU yang butuh dia approve
             $query->where(function ($q) use ($user) {
                 $q->where('user_id', $user->id)
-                    ->orWhere('approver_id', $user->id); // Tiket yang menunjuk dia sebagai approver
+                    ->orWhere(function ($subQ) use ($user) {
+                        $subQ->where('department_id', $user->department_id)
+                            ->where('status', '!=', \App\Enums\PettyCashStatus::DRAFT);
+                    });
             });
         } elseif ($user->role === 'manager') {
             $query->where(function ($q) use ($user) {
-                // 1. Tiket milik sendiri (Bisa lihat SEMUA status, termasuk Draft)
                 $q->where('user_id', $user->id)
-                    // 2. ATAU Tiket staf departemen (Hanya status tertentu)
                     ->orWhere(function ($subQ) use ($user) {
                         $subQ->where('department_id', $user->department_id)
                             ->whereIn('status', [
