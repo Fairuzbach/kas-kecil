@@ -4,7 +4,7 @@
 
 /* Status Approval Timeline Animations */
 /* Add this to your app.css or main CSS file */
-
+[x-cloak] { display: none !important; }
 /* Pulse Ring Animation for Active Status */
 ::-webkit-scrollbar          { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track    { background: transparent; }
