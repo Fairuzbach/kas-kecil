@@ -6,7 +6,7 @@
     {{-- PANEL DIGITAL (Hanya tampil di layar, sembunyi saat print) --}}
     <div class="w-full bg-white p-4 rounded-none shadow-sm border-b-4 border-indigo-500 mb-4 print:hidden">
         <h3 class="text-base font-bold text-gray-800 mb-3">⚙️ Pengaturan Pengajuan (Digital)</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Tipe Pengajuan</label>
                 <select wire:model.live="type"
@@ -22,7 +22,21 @@
                     <span class="text-red-500 text-xs">{{ $message }}</span>
                 @enderror
             </div>
-
+            @if (count($supervisors) > 0)
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Pilih Supervisor (Approver)</label>
+                    <select wire:model="selected_approver_id"
+                        class="block w-full rounded-none border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition text-sm py-2">
+                        <option value="">-- Pilih Supervisor --</option>
+                        @foreach ($supervisors as $spv)
+                            <option value="{{ $spv->id }}">{{ $spv->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('selected_approver_id')
+                        <span class="text-red-500 text-xs">{{ $message }}</span>
+                    @enderror
+                </div>
+            @endif
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Upload Lampiran (Struk/Nota)</label>
                 <input type="file" wire:model.live="attachment" accept="image/*, application/pdf"
@@ -201,7 +215,7 @@
                                     </optgroup>
 
                                     {{-- 2. COA SEMENTARA (HARDCODED) --}}
-                                    <optgroup label="Akun Pajak (Sementara)">
+                                    <optgroup label="Akun Pajak">
                                         <option value="tax_ppn">115105 - PPN Masukan (11%)</option>
                                         <option value="tax_pph">211402 - Hutang PPh 23 (2%)</option>
                                     </optgroup>
@@ -248,7 +262,13 @@
                         </td>
                     </tr>
                     <tr class="bg-gray-50">
+                        {{-- 1. Kembalikan kolom "Total" dengan colspan="4" --}}
+                        <td colspan="4"
+                            class="border border-black px-3 py-2 text-right font-bold tracking-widest text-sm uppercase">
+                            Total
+                        </td>
 
+                        {{-- 2. Kolom Angka Total & Info OCR --}}
                         <td class="border border-black px-2 py-2 font-bold bg-gray-200 text-sm">
                             <div class="flex flex-col w-full">
                                 <div class="flex justify-between items-center w-full">
@@ -264,12 +284,8 @@
                                 @endif
                             </div>
                         </td>
-                        <td class="border border-black px-2 py-2 font-bold bg-gray-200 text-sm">
-                            <div class="flex justify-between items-center w-full">
-                                <span>Rp.</span>
-                                <span>{{ number_format($total ?? 0, 0, ',', '.') }}.-</span>
-                            </div>
-                        </td>
+
+                        {{-- 3. Kolom Kosong untuk menyamakan dengan kolom Aksi --}}
                         <td class="border border-black print:hidden bg-gray-200"></td>
                     </tr>
                 </tfoot>
@@ -466,7 +482,7 @@
             </svg>
             <span>Memproses PDF...</span>
         </div>
-        <div class="bg-white rounded-lg w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col"
+        <div class="bg-white rounded-none w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col"
             @click.away="closeModal()">
             <div class="p-4 bg-gray-900 text-white flex justify-between items-center">
                 <h3 class="font-bold">Arahkan Kotak ke Nominal Angka</h3>
