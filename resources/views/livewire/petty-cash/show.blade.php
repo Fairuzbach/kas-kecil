@@ -381,9 +381,9 @@
 
                                 {{-- Tombol Utama (Setujui) - Di Mobile jadi Full Width di bawahnya --}}
                                 <button wire:click="$set('showAcceptModal', true)" wire:loading.attr="disabled"
-                                    class="col-span-2 lg:col-span-1 px-6 py-2.5 bg-emerald-600 text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-emerald-700 shadow-md transition active:scale-95 flex items-center justify-center gap-2">
-                                    <span wire:loading.remove wire:target="{{ $method }}"
-                                        class="flex items-center gap-2">
+                                    class="col-span-2 lg:col-span-1 px-6 py-2.5 bg-emerald-600 text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-emerald-700 shadow-md transition active:scale-95 flex items-center justify-center gap-2"
+                                    wire:target="$set">
+                                    <span wire:loading.remove wire:target="$set" class="flex items-center gap-2">
                                         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
