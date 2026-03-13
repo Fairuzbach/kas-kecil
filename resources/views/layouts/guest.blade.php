@@ -31,7 +31,7 @@
 
                 <div class="mobile-logo">
                     <img src="{{ asset('logo.webp') }}" alt="Logo">
-                    <span class="mobile-logo-name">{{ config('app.name', 'Finance Portal') }}</span>
+                    <span class="mobile-logo-name">{{ config('app.name', 'FA Portal') }}</span>
                     <span class="mobile-logo-div">Finance &amp; Accounting Division</span>
                 </div>
 
