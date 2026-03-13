@@ -36,10 +36,14 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
     <script>
         document.addEventListener('livewire:init', () => {
+
+            // 1. LISTENER UNTUK SWEETALERT (SWAL)
             Livewire.on('swal', (event) => {
-                const data = event[0];
+                // Perbaikan Livewire 3: Deteksi apakah data ada di dalam array [0] atau langsung berupa object
+                const data = Array.isArray(event) ? event[0] : event;
 
                 Swal.fire({
                     title: data.title,
@@ -49,9 +53,29 @@
                     confirmButtonColor: '#4f46e5'
                 });
             });
+
+            // 2. LISTENER UNTUK NOTIFY (Dari Show.php)
+            Livewire.on('notify', (event) => {
+                // Ambil pesan string (bisa berupa array[0] atau langsung string)
+                const message = Array.isArray(event) ? event[0] : event;
+
+                Swal.fire({
+                    title: 'Pemberitahuan',
+                    text: message,
+                    icon: 'warning',
+                    confirmButtonText: 'Mengerti',
+                    confirmButtonColor: '#eab308'
+                });
+            });
+
         });
-        var pdfjsLib = window['pdfjs-dist/build/pdf'];
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Setup PDF.js
+        var pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
+        if (pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
     </script>
 </body>
 
