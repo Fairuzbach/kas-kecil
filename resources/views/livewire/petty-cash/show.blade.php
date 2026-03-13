@@ -368,7 +368,7 @@
                             <div class="grid grid-cols-2 lg:flex gap-2 sm:gap-3">
 
                                 @if (in_array($request->status->value, ['pending_director', 'pending_finance', 'pending_finance_manager']))
-                                    <button type="button" wire:click="confirmRevision"
+                                    <button type="button" data-laoding wire:click="confirmRevision"
                                         class="px-4 py-2.5 bg-white border-2 border-orange-500 text-orange-600 text-xs sm:text-sm font-bold rounded-lg hover:bg-orange-50 transition shadow-sm active:scale-95">
                                         Minta Revisi
                                     </button>
@@ -411,6 +411,12 @@
 
             {{-- Kolom Tanda Tangan --}}
             @php
+
+                $spvUser = $request->approver_id ? \App\Models\User::find($request->approver_id) : null;
+                $spvName = $spvUser->name ?? 'Supervisor';
+                $spvEmployee = $spvUser ? \App\Models\Employee::where('nik', $spvUser->nik)->first() : null;
+                $spvTitle = $spvEmployee->job_title ?? 'Supervisor';
+                $hasSupervisor = !is_null($request->approver_id);
                 // 1. DATA MANAGER
                 $mgrUser = $request->department->manager;
                 $mgrName = $mgrUser->name ?? 'Manager';
@@ -455,8 +461,9 @@
                 $isCoaVerified = in_array($request->status->value, ['pending_finance_manager', 'paid']);
             @endphp
 
-            {{-- Ubah grid-cols-5 menjadi grid-cols-6 --}}
-            <div class="grid grid-cols-6 gap-0 text-center text-xs font-bold mt-16 mb-8 uppercase">
+
+            <div
+                class="grid {{ $hasSupervisor ? 'grid-cols-7' : 'grid-cols-6' }} gap-0 text-center text-xs font-bold mt-16 mb-8 uppercase">
 
                 {{-- 1. DIREKTUR --}}
                 <div class="flex flex-col justify-between h-32 border border-black p-1">
@@ -477,7 +484,17 @@
                         <p class="text-[9px] font-normal">{{ $mgrTitle }}</p>
                     </div>
                 </div>
-
+                @if ($hasSupervisor)
+                    <div class="flex flex-col justify-between h-32 border border-black border-l-0 p-1">
+                        <p>Diperiksa Oleh, (belum tau yang cocok apa)</p>
+                        <div class="mt-auto">
+                            <p class="text-[10px] font-bold">{{ $request->supervisor_approved_at ? $spvName : '' }}
+                            </p>
+                            <div class="border-b border-black border-dashed mx-2 mb-1"></div>
+                            <p class="text-[9px] font-normal">{{ $spvTitle }}</p>
+                        </div>
+                    </div>
+                @endif
                 {{-- 3. VERIFIKASI COA (KOLOM BARU) --}}
                 <div class="flex flex-col justify-between h-32 border border-black border-l-0 p-1 bg-indigo-50/30">
                     <p class="text-[10px]">Verifikasi COA,</p>
