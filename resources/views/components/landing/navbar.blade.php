@@ -4,7 +4,7 @@
             <img src="{{ asset('logo.webp') }}" alt="Logo">
         </div>
         <div class="nav-brand-info">
-            <span class="nav-app-name">{{ config('app.name', 'Finance Portal') }}</span>
+            <span class="nav-app-name">{{ config('app.name', 'FA Portal') }}</span>
             <span class="nav-app-div">Finance &amp; Accounting Division</span>
         </div>
     </a>

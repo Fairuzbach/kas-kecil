@@ -88,7 +88,7 @@
             <img src="{{ asset('logo.webp') }}" alt="Logo">
         </div>
         <div class="lp-brand-text">
-            <span class="lp-app-name">{{ config('app.name', 'Finance Portal') }}</span>
+            <span class="lp-app-name">{{ config('app.name', 'FA Portal') }}</span>
             <span class="lp-app-div">Finance &amp; Accounting Division</span>
         </div>
     </a>
@@ -132,7 +132,7 @@
 
                         // 2. Format pesan form yang akan otomatis muncul di WA user
                         $waMessage =
-                            'Halo Admin, saya lupa password akun Finance Portal saya. Berikut data untuk reset password:%0A%0A' .
+                            'Halo Admin, saya lupa password akun FA Portal saya. Berikut data untuk reset password:%0A%0A' .
                             'Nama Lengkap : %0A' .
                             'NIK : %0A' .
                             'Departemen : %0A%0A' .
