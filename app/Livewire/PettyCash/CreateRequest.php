@@ -269,28 +269,36 @@ class CreateRequest extends Component
     }
     private function convertTerbilang($nilai)
     {
+        // Pastikan nilai selalu positif
         $nilai = abs($nilai);
         $huruf = array("", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas");
         $temp = "";
+
         if ($nilai < 12) {
-            $temp = " " . $huruf[$nilai];
+            // Gunakan (int) agar index array valid
+            $temp = " " . $huruf[(int)$nilai];
         } else if ($nilai < 20) {
             $temp = $this->convertTerbilang($nilai - 10) . " Belas ";
         } else if ($nilai < 100) {
-            $temp = $this->convertTerbilang($nilai / 10) . " Puluh " . $this->convertTerbilang($nilai % 10);
+            // Bungkus hasil bagi dengan (int)
+            $temp = $this->convertTerbilang((int)($nilai / 10)) . " Puluh " . $this->convertTerbilang(fmod($nilai, 10));
         } else if ($nilai < 200) {
             $temp = " Seratus " . $this->convertTerbilang($nilai - 100);
         } else if ($nilai < 1000) {
-            $temp = $this->convertTerbilang($nilai / 100) . " Ratus " . $this->convertTerbilang($nilai % 100);
+            $temp = $this->convertTerbilang((int)($nilai / 100)) . " Ratus " . $this->convertTerbilang(fmod($nilai, 100));
         } else if ($nilai < 2000) {
             $temp = " Seribu " . $this->convertTerbilang($nilai - 1000);
         } else if ($nilai < 1000000) {
-            $temp = $this->convertTerbilang($nilai / 1000) . " Ribu " . $this->convertTerbilang($nilai % 1000);
+            $temp = $this->convertTerbilang((int)($nilai / 1000)) . " Ribu " . $this->convertTerbilang(fmod($nilai, 1000));
         } else if ($nilai < 1000000000) {
-            $temp = $this->convertTerbilang($nilai / 1000000) . " Juta " . $this->convertTerbilang($nilai % 1000000);
+            $temp = $this->convertTerbilang((int)($nilai / 1000000)) . " Juta " . $this->convertTerbilang(fmod($nilai, 1000000));
         } else if ($nilai < 1000000000000) {
-            $temp = $this->convertTerbilang($nilai / 1000000000) . " Milyar " . $this->convertTerbilang(fmod($nilai, 1000000000));
+            $temp = $this->convertTerbilang((int)($nilai / 1000000000)) . " Milyar " . $this->convertTerbilang(fmod($nilai, 1000000000));
+        } else if ($nilai < 1000000000000000) {
+            // 👇 TAMBAHAN UNTUK TRILIUN
+            $temp = $this->convertTerbilang((int)($nilai / 1000000000000)) . " Triliun " . $this->convertTerbilang(fmod($nilai, 1000000000000));
         }
+
         return trim($temp);
     }
 

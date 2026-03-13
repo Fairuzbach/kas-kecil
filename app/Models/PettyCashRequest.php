@@ -103,23 +103,26 @@ class PettyCashRequest extends Model
         $temp = "";
 
         if ($nilai < 12) {
-            $temp = " " . $huruf[$nilai];
+            $temp = " " . $huruf[(int)$nilai];
         } else if ($nilai < 20) {
             $temp = $this->logikaTerbilang($nilai - 10) . " Belas ";
         } else if ($nilai < 100) {
-            $temp = $this->logikaTerbilang($nilai / 10) . " Puluh " . $this->logikaTerbilang($nilai % 10);
+            $temp = $this->logikaTerbilang((int)($nilai / 10)) . " Puluh " . $this->logikaTerbilang($nilai % 10);
         } else if ($nilai < 200) {
             $temp = " Seratus " . $this->logikaTerbilang($nilai - 100);
         } else if ($nilai < 1000) {
-            $temp = $this->logikaTerbilang($nilai / 100) . " Ratus " . $this->logikaTerbilang($nilai % 100);
+            $temp = $this->logikaTerbilang((int)($nilai / 100)) . " Ratus " . $this->logikaTerbilang($nilai % 100);
         } else if ($nilai < 2000) {
             $temp = " Seribu " . $this->logikaTerbilang($nilai - 1000);
         } else if ($nilai < 1000000) {
-            $temp = $this->logikaTerbilang($nilai / 1000) . " Ribu " . $this->logikaTerbilang($nilai % 1000);
+            $temp = $this->logikaTerbilang((int)($nilai / 1000)) . " Ribu " . $this->logikaTerbilang($nilai % 1000);
         } else if ($nilai < 1000000000) {
-            $temp = $this->logikaTerbilang($nilai / 1000000) . " Juta " . $this->logikaTerbilang($nilai % 1000000);
+            $temp = $this->logikaTerbilang((int)($nilai / 1000000)) . " Juta " . $this->logikaTerbilang($nilai % 1000000);
+        } else if ($nilai < 1000000000000) {
+            $temp = $this->logikaTerbilang((int)($nilai / 1000000000)) . " Milyar " . $this->logikaTerbilang(fmod($nilai, 1000000000));
+        } else if ($nilai < 1000000000000000) {
+            $temp = $this->logikaTerbilang((int)($nilai / 1000000000000)) . " Triliun " . $this->logikaTerbilang(fmod($nilai, 1000000000000));
         }
-
-        return $temp;
+        return trim($temp);
     }
 }
