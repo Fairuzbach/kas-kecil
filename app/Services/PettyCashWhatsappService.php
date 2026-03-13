@@ -45,18 +45,18 @@ class PettyCashWhatsappService
         foreach ($approvers as $approver) {
             $phone = $approver->phone_number ?? $approver->phone ?? null;
             if ($approver && !empty($phone)) {
-                $msg = "*[Finance Portal] Permintaan Approval Petty Cash*\n\n" .
-                    "Yth. *{$approver->name}*,\n\n" .
-                    "Terdapat pengajuan petty cash yang memerlukan persetujuan Anda.\n\n" .
-                    "*Detail Pengajuan*\n" .
-                    "No. Referensi : #{$request->tracking_number}\n" .
-                    "Pemohon       : {$request->user->name}\n" .
-                    "Departemen    : {$request->department->code}\n" .
-                    "Nominal       : Rp " . number_format($request->amount, 0, ',', '.') . "\n" .
-                    "Dibayar Kepada    : {$request->title}\n\n" .
-                    "Silakan lakukan review melalui tautan berikut:\n" .
+                $msg = "*[FA PORTAL] PERMINTAAN APPROVAL PETTY CASH*\n\n" .
+                    "YTH. *" . strtoupper($approver->name) . "*,\n\n" .
+                    "TERDAPAT PENGAJUAN PETTY CASH YANG MEMERLUKAN PERSETUJUAN ANDA.\n\n" .
+                    "*DETAIL PENGAJUAN*\n" .
+                    "NO. REFERENSI : #{$request->tracking_number}\n" .
+                    "PEMOHON       : " . strtoupper($request->user->name) . "\n" .
+                    "DEPARTEMEN    : " . strtoupper($request->department->code) . "\n" .
+                    "NOMINAL       : RP " . number_format($request->amount, 0, ',', '.') . "\n" .
+                    "DIBAYAR KEPADA    : " . strtoupper($request->title) . "\n\n" .
+                    "SILAKAN LAKUKAN REVIEW MELALUI TAUTAN BERIKUT:\n" .
                     "$link\n\n" .
-                    "_Pesan ini dikirim secara otomatis oleh sistem. Harap tidak membalas pesan ini._";
+                    "_PESAN INI DIKIRIM SECARA OTOMATIS OLEH SISTEM. HARAP TIDAK MEMBALAS PESAN INI._";
 
                 $this->sendWa($phone, $msg);
             }
@@ -74,46 +74,46 @@ class PettyCashWhatsappService
         if (!$requester || empty($phone)) return;
 
         $link = route('petty-cash.show', $request->id);
-        $header = "*[Finance Portal] Notifikasi Petty Cash*\n\n" .
-            "Yth. *{$requester->name}*,\n\n";
-        $footer = "\nUntuk informasi lebih lanjut, silakan akses tautan berikut:\n$link\n\n" .
-            "_Pesan ini dikirim secara otomatis oleh sistem. Harap tidak membalas pesan ini._";
+        $header = "*[FA PORTAL] NOTIFIKASI PETTY CASH*\n\n" .
+            "YTH. *" . strtoupper($requester->name) . "*,\n\n";
+        $footer = "\nUNTUK INFORMASI LEBIH LANJUT, SILAKAN AKSES TAUTAN BERIKUT:\n$link\n\n" .
+            "_PESAN INI DIKIRIM SECARA OTOMATIS OLEH SISTEM. HARAP TIDAK MEMBALAS PESAN INI._";
 
         switch ($action) {
             case 'rejected':
                 $msg = $header .
-                    "Kami informasikan bahwa pengajuan petty cash Anda *ditolak*.\n\n" .
-                    "*Detail Pengajuan*\n" .
-                    "No. Referensi : #{$request->tracking_number}\n\n" .
-                    "*Alasan Penolakan*\n" .
-                    "{$note}" .
+                    "KAMI INFORMASIKAN BAHWA PENGAJUAN PETTY CASH ANDA *DITOLAK*.\n\n" .
+                    "*DETAIL PENGAJUAN*\n" .
+                    "NO. REFERENSI : #{$request->tracking_number}\n\n" .
+                    "*ALASAN PENOLAKAN*\n" .
+                    strtoupper($note) .
                     $footer;
                 break;
 
             case 'revision':
                 $msg = $header .
-                    "Pengajuan petty cash Anda memerlukan *revisi* sebelum dapat diproses lebih lanjut.\n\n" .
-                    "*Detail Pengajuan*\n" .
-                    "No. Referensi : #{$request->tracking_number}\n\n" .
-                    "*Catatan Revisi*\n" .
-                    "{$note}" .
+                    "PENGAJUAN PETTY CASH ANDA MEMERLUKAN *REVISI* SEBELUM DAPAT DIPROSES LEBIH LANJUT.\n\n" .
+                    "*DETAIL PENGAJUAN*\n" .
+                    "NO. REFERENSI : #{$request->tracking_number}\n\n" .
+                    "*CATATAN REVISI*\n" .
+                    strtoupper($note) .
                     $footer;
                 break;
 
             case 'ready_for_infor':
                 $msg = $header .
-                    "Pengajuan petty cash Anda telah *disetujui* oleh Finance Manager dan saat ini sedang dalam antrian untuk diunggah ke sistem INFOR.\n\n" .
-                    "*Detail Pengajuan*\n" .
-                    "No. Referensi : #{$request->tracking_number}" .
+                    "PENGAJUAN PETTY CASH ANDA TELAH *DISETUJUI* OLEH FINANCE MANAGER DAN SAAT INI SEDANG DALAM ANTRIAN UNTUK DIUNGGAH KE SISTEM INFOR.\n\n" .
+                    "*DETAIL PENGAJUAN*\n" .
+                    "NO. REFERENSI : #{$request->tracking_number}" .
                     $footer;
                 break;
 
             case 'paid':
                 $msg = $header .
-                    "Pengajuan petty cash Anda telah *selesai diproses* dan dana telah dicairkan.\n\n" .
-                    "*Detail Pengajuan*\n" .
-                    "No. Referensi : #{$request->tracking_number}\n" .
-                    "Nominal       : Rp " . number_format($request->amount, 0, ',', '.') .
+                    "PENGAJUAN PETTY CASH ANDA TELAH *SELESAI DIPROSES* DAN DANA TELAH DICAIRKAN.\n\n" .
+                    "*DETAIL PENGAJUAN*\n" .
+                    "NO. REFERENSI : #{$request->tracking_number}\n" .
+                    "NOMINAL       : RP " . number_format($request->amount, 0, ',', '.') .
                     $footer;
                 break;
 
